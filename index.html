@@ -444,6 +444,7 @@
             <div class="sidebar" id="sidebar-menu">
                 <button class="nav-btn active" onclick="openPage('requests', this)" id="menu-btn-requests">Заявки</button>
                 <button class="nav-btn" onclick="openPage('upcoming', this)" id="menu-btn-upcoming">Предстоящи заявки</button>
+                <button class="nav-btn admin-only" onclick="openPage('users', this)" id="menu-btn-users" style="display: none;">Потребители</button>
             </div>
 
             <!-- Дясна зона -->
@@ -535,6 +536,44 @@
                     </div>
                 </div>
 
+                <!-- ПОДСТРАНИЦА: ПОТРЕБИТЕЛИ (Само за Админ) -->
+                <div id="page-users" class="page-section">
+                    <h3>Управление на потребители</h3>
+                    
+                    <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+                        <div class="profile-grid">
+                            <div>
+                                <label class="field-label">Потребителско име</label>
+                                <input type="text" id="new-user-name" placeholder="Въведете потребител">
+                            </div>
+                            <div>
+                                <label class="field-label">Парола</label>
+                                <input type="password" id="new-user-pass" placeholder="Въведете парола">
+                            </div>
+                            <div>
+                                <label class="field-label">Роля в системата</label>
+                                <select id="new-user-role">
+                                    <option value="operator">Оператор</option>
+                                    <option value="admin">Администратор</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button class="btn-save" onclick="registerNewUser()">Създай потребител</button>
+                    </div>
+
+                    <h4 style="font-size: 16px; color: #00d2ff; margin-bottom: 12px;">Активни потребители</h4>
+                    <table class="clothing-table">
+                        <thead>
+                            <tr>
+                                <th>Потребителско име</th>
+                                <th>Роля</th>
+                                <th>Действие</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-tbody"></tbody>
+                    </table>
+                </div>
+
             </div>
         </div>
     </div>
@@ -595,6 +634,7 @@
         window.onload = function() {
             renderRequests();
             renderUpcomingCards();
+            renderUsersTable();
         };
 
         function getStoredUsers() {
@@ -636,16 +676,20 @@
         function applyRolePermissions(role) {
             let adminReqForm = document.getElementById("admin-request-form");
             let adminUpcomingBtnBox = document.getElementById("admin-upcoming-btn-box");
+            let menuUsers = document.getElementById("menu-btn-users");
 
             if (role === "operator") {
                 if (adminReqForm) adminReqForm.style.display = "none";
                 if (adminUpcomingBtnBox) adminUpcomingBtnBox.style.display = "none";
+                if (menuUsers) menuUsers.style.display = "none";
             } else {
                 if (adminReqForm) adminReqForm.style.display = "block";
                 if (adminUpcomingBtnBox) adminUpcomingBtnBox.style.display = "block";
+                if (menuUsers) menuUsers.style.display = "block";
             }
             openPage('requests', document.getElementById('menu-btn-requests'));
             renderUpcomingCards();
+            renderUsersTable();
         }
 
         function handleEnter(event) {
@@ -675,6 +719,8 @@
                 renderRequests();
             } else if (pageName === 'upcoming') {
                 renderUpcomingCards();
+            } else if (pageName === 'users') {
+                renderUsersTable();
             }
         }
 
@@ -706,6 +752,62 @@
             } catch (e) {
                 console.log("Аудиото не може да се възпроизведе автоматично.");
             }
+        }
+
+        // --- УПРАВЛЕНИЕ НА ПОТРЕБИТЕЛИ (Админ) ---
+        function registerNewUser() {
+            let uname = document.getElementById("new-user-name").value.trim();
+            let upass = document.getElementById("new-user-pass").value;
+            let urole = document.getElementById("new-user-role").value;
+
+            if (!uname || !upass) {
+                alert("Моля, попълнете потребителско име и парола!");
+                return;
+            }
+
+            let users = getStoredUsers();
+            if (users.some(u => u.username === uname)) {
+                alert("Това потребителско име вече съществува!");
+                return;
+            }
+
+            users.push({ username: uname, pass: upass, role: urole });
+            localStorage.setItem("sys616_users_list", JSON.stringify(users));
+
+            document.getElementById("new-user-name").value = "";
+            document.getElementById("new-user-pass").value = "";
+            renderUsersTable();
+            alert("Потребителят е създаден успешно!");
+        }
+
+        function renderUsersTable() {
+            let tbody = document.getElementById("users-tbody");
+            if (!tbody) return;
+            tbody.innerHTML = "";
+
+            let users = getStoredUsers();
+            users.forEach(u => {
+                let tr = document.createElement("tr");
+                let roleBadge = u.role === 'admin' ? '<span style="color: #00d2ff; font-weight: bold;">Администратор</span>' : '<span style="color: #9ca3af;">Оператор</span>';
+                
+                let deleteBtn = u.username === 'admin' 
+                    ? '<span style="color: #555; font-size: 12px;">Защитен</span>' 
+                    : `<button onclick="deleteUser('${u.username}')" style="background: rgba(255,77,77,0.15); border: 1px solid #ff4d4d; color: #ff4d4d; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 12px;">Изтрий</button>`;
+
+                tr.innerHTML = `
+                    <td><b>${u.username}</b></td>
+                    <td>${roleBadge}</td>
+                    <td>${deleteBtn}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function deleteUser(username) {
+            let users = getStoredUsers();
+            users = users.filter(u => u.username !== username);
+            localStorage.setItem("sys616_users_list", JSON.stringify(users));
+            renderUsersTable();
         }
 
         // --- ЛОГИКА ЗА ЗАЯВКИ ---
