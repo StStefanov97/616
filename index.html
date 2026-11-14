@@ -16,18 +16,18 @@
         }
 
         body {
-            height: 100vh;
+            min-height: 100vh;
             background-color: #090a0f;
-            overflow: hidden;
             display: flex;
             justify-content: center;
             align-items: center;
             color: #ffffff;
             position: relative;
+            overflow-x: hidden;
         }
 
         .moving-background {
-            position: absolute;
+            position: fixed;
             width: 200%;
             height: 200%;
             background: radial-gradient(circle at 30% 30%, rgba(0, 113, 227, 0.25), transparent 40%),
@@ -171,21 +171,21 @@
             min-height: 20px;
         }
 
-        /* ЕКРАН 2: DASHBOARD */
+        /* ЕКРАН 2: DASHBOARD (Гъвкав мобилен изглед) */
         #dashboard-screen {
             display: none;
             flex-direction: column;
             position: relative;
             z-index: 2;
-            width: 98%;
+            width: 100%;
             max-width: 1250px;
-            height: 94vh;
-            background: rgba(15, 18, 28, 0.92);
+            min-height: 96vh;
+            background: rgba(15, 18, 28, 0.95);
             backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            border-radius: 16px;
-            padding: 15px;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+            border: none;
+            border-radius: 0;
+            padding: 12px;
+            box-shadow: none;
         }
 
         .dash-header {
@@ -200,7 +200,7 @@
         }
 
         .dash-title {
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 700;
             letter-spacing: 0.5px;
             color: #00d2ff;
@@ -210,8 +210,8 @@
         }
 
         .live-dot {
-            width: 10px;
-            height: 10px;
+            width: 9px;
+            height: 9px;
             background-color: #00ff88;
             border-radius: 50%;
             box-shadow: 0 0 8px #00ff88;
@@ -222,9 +222,9 @@
             background: rgba(0, 210, 255, 0.1);
             border: 1px solid rgba(0, 210, 255, 0.3);
             color: #00d2ff;
-            padding: 5px 10px;
+            padding: 5px 9px;
             border-radius: 6px;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 600;
         }
 
@@ -232,36 +232,43 @@
             background: rgba(0, 210, 255, 0.15);
             border: 1px solid #00d2ff;
             color: #00d2ff;
-            padding: 5px 10px;
+            padding: 5px 9px;
             border-radius: 6px;
             cursor: pointer;
             font-weight: 600;
-            font-size: 12px;
+            font-size: 11px;
         }
 
         .btn-logout {
             background: rgba(255, 77, 77, 0.15);
             border: 1px solid #ff4d4d;
             color: #ff4d4d;
-            padding: 5px 10px;
+            padding: 5px 9px;
             border-radius: 6px;
             cursor: pointer;
             font-weight: 600;
-            font-size: 12px;
+            font-size: 11px;
         }
 
         .dash-body {
             display: flex;
             flex: 1;
             gap: 15px;
-            overflow: hidden;
             flex-direction: column;
         }
 
         @media(min-width: 768px) {
-            .dash-body { flex-direction: row; }
-            .dash-title { font-size: 20px; }
-            #dashboard-screen { padding: 25px; height: 90vh; }
+            .dash-body { flex-direction: row; height: 82vh; overflow: hidden; }
+            .dash-title { font-size: 18px; }
+            #dashboard-screen {
+                width: 98%;
+                min-height: auto;
+                height: 90vh;
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                border-radius: 16px;
+                padding: 22px;
+                box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+            }
         }
 
         .sidebar {
@@ -324,11 +331,13 @@
             background: rgba(0, 0, 0, 0.25);
             border: 1px solid rgba(255, 255, 255, 0.06);
             border-radius: 12px;
-            padding: 15px;
+            padding: 12px;
             overflow-y: auto;
         }
 
-        @media(min-width: 768px) { .main-content { padding: 25px; } }
+        @media(min-width: 768px) {
+            .main-content { padding: 20px; height: 100%; overflow-y: auto; }
+        }
 
         .page-section { display: none; }
         .page-section.active { display: block; }
@@ -392,11 +401,10 @@
             display: flex;
             flex-direction: column;
             gap: 15px;
-            height: 100%;
         }
 
         @media(min-width: 768px) {
-            .upcoming-layout { flex-direction: row; gap: 20px; }
+            .upcoming-layout { flex-direction: row; gap: 20px; height: 100%; }
         }
 
         .upcoming-sidebar {
@@ -449,7 +457,10 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            overflow-y: auto;
+        }
+
+        @media(min-width: 768px) {
+            .upcoming-content-panel { overflow-y: auto; height: 100%; padding-right: 5px; }
         }
     </style>
 </head>
@@ -504,13 +515,13 @@
                 <!-- ПОДСТРАНИЦА: ЗАЯВКИ -->
                 <div id="page-requests" class="page-section active">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 10px; flex-wrap: wrap; gap: 10px;">
-                        <h3 style="margin-bottom: 0; font-size: 18px; color: #ffffff;">Оперативни заявки (Реално време)</h3>
-                        <span style="font-size: 12px; color: #00ff88;">● Автоматично обновяване</span>
+                        <h3 style="margin-bottom: 0; font-size: 17px; color: #ffffff;">Оперативни заявки</h3>
+                        <span style="font-size: 11px; color: #00ff88;">● Облачна връзка</span>
                     </div>
                     
                     <!-- Форма за създаване (Само за администратор) -->
-                    <div id="admin-request-form" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); padding: 15px; border-radius: 12px; margin-bottom: 20px;">
-                        <h4 style="font-size: 14px; color: #00d2ff; margin-bottom: 12px;">Създаване на нова заявка</h4>
+                    <div id="admin-request-form" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); padding: 12px; border-radius: 12px; margin-bottom: 20px;">
+                        <h4 style="font-size: 13px; color: #00d2ff; margin-bottom: 10px;">Създаване на нова заявка</h4>
                         <div class="profile-grid">
                             <div>
                                 <label class="field-label">Име на обект</label>
@@ -542,7 +553,7 @@
                         <button class="btn-save" onclick="addRequest()">Публикувай заявка</button>
                     </div>
 
-                    <h4 style="font-size: 15px; color: #00d2ff; margin-bottom: 10px;">Регистрирани заявки</h4>
+                    <h4 style="font-size: 14px; color: #00d2ff; margin-bottom: 10px;">Регистрирани заявки</h4>
                     <div style="overflow-x: auto;">
                         <table class="clothing-table">
                             <thead>
@@ -564,7 +575,7 @@
 
                 <!-- ПОДСТРАНИЦА: ПРЕДСТОЯЩИ ЗАЯВКИ -->
                 <div id="page-upcoming" class="page-section">
-                    <h3 style="font-size: 18px; margin-bottom: 12px;">Предстоящи по маршрути</h3>
+                    <h3 style="font-size: 17px; margin-bottom: 12px;">Предстоящи по маршрути</h3>
                     <div class="upcoming-layout">
                         <div class="upcoming-sidebar">
                             <button class="upcoming-tab active" onclick="switchUpcomingRoute('route1', this)">Маршрут 1</button>
@@ -578,9 +589,9 @@
                         
                         <div class="upcoming-content-panel">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
-                                <h4 id="upcoming-route-title" style="color: #00d2ff; font-size: 15px;">Маршрут 1</h4>
+                                <h4 id="upcoming-route-title" style="color: #00d2ff; font-size: 14px;">Маршрут 1</h4>
                                 <div id="admin-upcoming-btn-box">
-                                    <button class="btn-save" onclick="openUpcomingModal()" style="padding: 7px 12px; font-size: 12px;">+ Добави план</button>
+                                    <button class="btn-save" onclick="openUpcomingModal()" style="padding: 6px 10px; font-size: 11px;">+ Добави план</button>
                                 </div>
                             </div>
                             <div id="upcoming-cards-container"></div>
@@ -590,9 +601,9 @@
 
                 <!-- ПОДСТРАНИЦА: ПОТРЕБИТЕЛИ (Само за Админ) -->
                 <div id="page-users" class="page-section">
-                    <h3 style="font-size: 18px; margin-bottom: 12px;">Управление на потребители</h3>
+                    <h3 style="font-size: 17px; margin-bottom: 12px;">Управление на потребители</h3>
                     
-                    <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); padding: 15px; border-radius: 12px; margin-bottom: 20px;">
+                    <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); padding: 12px; border-radius: 12px; margin-bottom: 20px;">
                         <div class="profile-grid">
                             <div>
                                 <label class="field-label">Потребителско име</label>
@@ -613,7 +624,7 @@
                         <button class="btn-save" onclick="registerNewUser()">Създай потребител</button>
                     </div>
 
-                    <h4 style="font-size: 15px; color: #00d2ff; margin-bottom: 10px;">Активни потребители</h4>
+                    <h4 style="font-size: 14px; color: #00d2ff; margin-bottom: 10px;">Активни потребители</h4>
                     <div style="overflow-x: auto;">
                         <table class="clothing-table">
                             <thead>
@@ -635,7 +646,7 @@
     <!-- МОДАЛЕН ПРОЗОРЕЦ -->
     <div id="upcoming-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); z-index: 100; justify-content: center; align-items: center; padding: 15px;">
         <div style="background: #121622; border: 1px solid rgba(255,255,255,0.15); width: 100%; max-width: 550px; max-height: 90vh; overflow-y: auto; padding: 20px; border-radius: 16px; box-shadow: 0 15px 40px rgba(0,0,0,0.8);">
-            <h3 id="modal-title" style="color: #00d2ff; font-size: 16px; margin-bottom: 12px;">План за дата</h3>
+            <h3 id="modal-title" style="color: #00d2ff; font-size: 15px; margin-bottom: 12px;">План за дата</h3>
             
             <div class="input-group">
                 <label class="field-label">Дата</label>
@@ -683,7 +694,6 @@
         let cloudUpcoming = [];
         let initialRequestsLoaded = false;
 
-        // ИНИЦИАЛИЗАЦИЯ НА ПОТРЕБИТЕЛИ ПО ПОДРАЗБИРАНЕ В ОБЛАКА
         async function ensureDefaultUsers() {
             const snap = await db.collection("users").get();
             if (snap.empty) {
@@ -692,16 +702,13 @@
             }
         }
 
-        // СЛУШАТЕЛИ В РЕАЛНО ВРЕМЕ (REAL-TIME LISTENERS)
         function startCloudListeners() {
-            // 1. Слушател за Потребители
             db.collection("users").onSnapshot(snapshot => {
                 cloudUsers = [];
                 snapshot.forEach(doc => cloudUsers.push({ id: doc.id, ...doc.data() }));
                 renderUsersTable();
             });
 
-            // 2. Слушател за Заявки
             db.collection("requests").orderBy("timestamp", "desc").onSnapshot(snapshot => {
                 let newReqAdded = false;
                 let latestReq = null;
@@ -725,7 +732,6 @@
                 }
             });
 
-            // 3. Слушател за Предстоящи
             db.collection("upcoming").orderBy("timestamp", "desc").onSnapshot(snapshot => {
                 cloudUpcoming = [];
                 snapshot.forEach(doc => cloudUpcoming.push({ docId: doc.id, ...doc.data() }));
@@ -740,7 +746,7 @@
 
         function requestNotificationPermission() {
             if (!("Notification" in window)) {
-                alert("Този браузър не поддържа известия.");
+                alert("Този браузър не поддържа системни известия.");
                 return;
             }
             Notification.requestPermission().then(permission => {
@@ -748,7 +754,7 @@
                     alert("Известията са разрешени успешно!");
                     new Notification("Система 616", { body: "Известията в реално време са активни!" });
                 } else {
-                    alert("Известията бяха отказани от настройките на телефона/браузъра.");
+                    alert("Известията бяха отказани от настройките.");
                 }
             });
         }
@@ -766,7 +772,6 @@
             let pass = document.getElementById("password").value;
             let feedback = document.getElementById("feedback");
 
-            // Fallback ако базата още зарежда първата секунда
             let list = cloudUsers.length > 0 ? cloudUsers : [
                 { username: "admin", pass: "616", role: "admin" },
                 { username: "operator", pass: "1234", role: "operator" }
@@ -852,7 +857,6 @@
             } catch (e) {}
         }
 
-        // --- ПОТРЕБИТЕЛИ (FIREBASE) ---
         async function registerNewUser() {
             let uname = document.getElementById("new-user-name").value.trim();
             let upass = document.getElementById("new-user-pass").value;
@@ -900,7 +904,6 @@
             }
         }
 
-        // --- ЗАЯВКИ (FIREBASE) ---
         async function addRequest() {
             let location = document.getElementById("req-location").value;
             let type = document.getElementById("req-type").value;
@@ -992,7 +995,6 @@
             }
         }
 
-        // --- ПРЕДСТОЯЩИ ЗАЯВКИ (FIREBASE) ---
         function switchUpcomingRoute(routeKey, tabButton) {
             currentUpcomingKey = routeKey;
             currentUpcomingTitle = tabButton.innerText;
@@ -1030,7 +1032,7 @@
 
                 card.innerHTML = `
                     <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 8px; margin-bottom: 10px;">
-                        <span style="color: #00d2ff; font-weight: bold; font-size: 14px;">📅 ${rec.date || 'Без дата'}</span>
+                        <span style="color: #00d2ff; font-weight: bold; font-size: 13px;">📅 ${rec.date || 'Без дата'}</span>
                         ${adminActions}
                     </div>
                     <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
