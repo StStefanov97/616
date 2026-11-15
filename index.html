@@ -892,6 +892,7 @@
                 renderUpcomingCards();
             });
 
+            // Слушател в реално време за графика от облака
             db.collection("schedule").onSnapshot(snapshot => {
                 cloudSchedule = {};
                 snapshot.forEach(doc => {
@@ -1288,7 +1289,7 @@
             }
         }
 
-        // --- ЛОГИКА ЗА МЕСЕЧЕН ГРАФИК (РЪЧНО ВЪВЕЖДАНЕ НА ИМЕНА) ---
+        // --- ЛОГИКА ЗА МЕСЕЧЕН ГРАФИК (СИНХРОНИЗИРАН С ОБЛАКА) ---
         function getOrthodoxEaster(year) {
             let a = year % 4, b = year % 7, c = year % 19;
             let d = (19 * c + 15) % 30;
@@ -1313,10 +1314,17 @@
             return false;
         }
 
+        function getScheduleStorageKey() {
+            return `schedule_${scheduleYear}_${scheduleMonth}`;
+        }
+
         function getSchedulePeople() {
-            // Взимаме имената само от ръчно добавените в графика ( localStorage / облак )
-            let extraPeople = JSON.parse(localStorage.getItem("sys616_schedule_extra_people")) || ["Иван Сукоров", "Риза Мустафа"];
-            return extraPeople;
+            let key = getScheduleStorageKey();
+            let monthDoc = cloudSchedule[key];
+            if (monthDoc && monthDoc.people && monthDoc.people.length > 0) {
+                return monthDoc.people;
+            }
+            return ["Иван Сукоров", "Риза Мустафа"];
         }
 
         async function addSchedulePerson() {
@@ -1324,21 +1332,26 @@
             let name = input.value.trim();
             if (!name) { alert("Въведете име на служител!"); return; }
             
-            let extraPeople = JSON.parse(localStorage.getItem("sys616_schedule_extra_people")) || ["Иван Сукоров", "Риза Мустафа"];
-            if (extraPeople.includes(name)) { alert("Това име вече присъства в графика!"); return; }
+            let key = getScheduleStorageKey();
+            let monthDoc = cloudSchedule[key] || { people: ["Иван Сукоров", "Риза Мустафа"], shifts: {} };
             
-            extraPeople.push(name);
-            localStorage.setItem("sys616_schedule_extra_people", JSON.stringify(extraPeople));
+            if (monthDoc.people.includes(name)) { alert("Това име вече присъства в графика!"); return; }
+            
+            monthDoc.people.push(name);
             input.value = "";
-            renderMonthlySchedule();
+            
+            // Качваме актуализирания списък с имена в облака
+            await db.collection("schedule").doc(key).set(monthDoc);
         }
 
         async function removeExtraSchedulePerson(name) {
             if (confirm(`Премахване на "${name}" от месечния график?`)) {
-                let extraPeople = JSON.parse(localStorage.getItem("sys616_schedule_extra_people")) || ["Иван Сукоров", "Риза Мустафа"];
-                extraPeople = extraPeople.filter(p => p !== name);
-                localStorage.setItem("sys616_schedule_extra_people", JSON.stringify(extraPeople));
-                renderMonthlySchedule();
+                let key = getScheduleStorageKey();
+                let monthDoc = cloudSchedule[key];
+                if (monthDoc && monthDoc.people) {
+                    monthDoc.people = monthDoc.people.filter(p => p !== name);
+                    await db.collection("schedule").doc(key).set(monthDoc);
+                }
             }
         }
 
@@ -1349,10 +1362,6 @@
             renderMonthlySchedule();
         }
 
-        function getScheduleStorageKey() {
-            return `schedule_${scheduleYear}_${scheduleMonth}`;
-        }
-
         function updateScheduleCellStyle(selectEl) {
             selectEl.className = "schedule-select";
             if (selectEl.value) { selectEl.classList.add("val-" + selectEl.value); }
@@ -1361,26 +1370,33 @@
         async function onScheduleCellChange(person, day, selectEl) {
             updateScheduleCellStyle(selectEl);
             let key = getScheduleStorageKey();
-            let monthData = cloudSchedule[key] || {};
-            if (!monthData[person]) monthData[person] = {};
-            monthData[person][day] = selectEl.value;
+            let monthDoc = cloudSchedule[key] || { people: getSchedulePeople(), shifts: {} };
+            if (!monthDoc.shifts) monthDoc.shifts = {};
+            if (!monthDoc.shifts[person]) monthDoc.shifts[person] = {};
+            monthDoc.shifts[person][day] = selectEl.value;
 
-            await db.collection("schedule").doc(key).set(monthData);
+            await db.collection("schedule").doc(key).set(monthDoc);
         }
 
         async function saveMonthlySchedule() {
             let key = getScheduleStorageKey();
-            let monthData = {};
+            let people = getSchedulePeople();
+            let shifts = {};
             let selects = document.querySelectorAll("#schedule-tbody .schedule-select");
 
             selects.forEach(sel => {
                 let person = sel.getAttribute("data-person");
                 let day = sel.getAttribute("data-day");
-                if (!monthData[person]) monthData[person] = {};
-                monthData[person][day] = sel.value;
+                if (!shifts[person]) shifts[person] = {};
+                shifts[person][day] = sel.value;
             });
 
-            await db.collection("schedule").doc(key).set(monthData);
+            let monthDoc = {
+                people: people,
+                shifts: shifts
+            };
+
+            await db.collection("schedule").doc(key).set(monthDoc);
             scheduleBlinkActive = true;
             renderMonthlySchedule();
             alert("Месечният график е записан в облака успешно!");
@@ -1428,7 +1444,8 @@
 
             let people = getSchedulePeople();
             let key = getScheduleStorageKey();
-            let savedData = cloudSchedule[key] || {};
+            let monthDoc = cloudSchedule[key] || {};
+            let savedData = monthDoc.shifts || {};
             const options = ["", "1", "2", "3", "4", "5", "Д", "О"];
             let isAdmin = loggedInUser && loggedInUser.role === 'admin';
 
