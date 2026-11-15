@@ -900,6 +900,30 @@
         </div>
     </div>
 
+    <!-- Firebase SDK (Modular v10) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // Твоята Firebase конфигурация (заменете с вашите реални данни от Firebase Console)
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        window.db = db;
+        window.FirestoreAPI = { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, setDoc, onSnapshot };
+
+        // Стартиране на слушатели за реално време след инициализация
+        window.initFirebaseRealtimeListeners();
+    </script>
+
     <script>
         let loggedInUser = null;
         let currentUpcomingKey = "route1";
@@ -912,12 +936,37 @@
         const monthNames = ["Януари", "Февруари", "Март", "Април", "Май", "Юни", "Юли", "Август", "Септември", "Октомври", "Ноември", "Декември"];
 
         window.onload = function() {
-            let requests = JSON.parse(localStorage.getItem("sys616_requests")) || [];
-            lastKnownRequestCount = requests.length;
-            renderRequests();
-            renderUpcomingCards();
-            renderUsersTable();
             renderMonthlySchedule();
+        };
+
+        window.initFirebaseRealtimeListeners = function() {
+            if (!window.db) return;
+            const { collection, onSnapshot } = window.FirestoreAPI;
+
+            // Слушател за заявки в реално време
+            onSnapshot(collection(window.db, "requests"), (snapshot) => {
+                let requests = [];
+                snapshot.forEach(docSnap => {
+                    requests.push({ id: docSnap.id, ...docSnap.data() });
+                });
+                // Сортиране по дата или ID ако е нужно
+                renderRequestsData(requests);
+            });
+
+            // Слушател за потребители в реално време
+            onSnapshot(collection(window.db, "users"), (snapshot) => {
+                let users = [];
+                snapshot.forEach(docSnap => {
+                    users.push(docSnap.data());
+                });
+                if (users.length === 0) {
+                    // Създаване на дефолтен админ при празна база
+                    window.FirestoreAPI.setDoc(window.FirestoreAPI.doc(window.db, "users", "admin"), { username: "admin", pass: "616", role: "admin" });
+                    window.FirestoreAPI.setDoc(window.FirestoreAPI.doc(window.db, "users", "operator"), { username: "operator", pass: "1234", role: "operator" });
+                } else {
+                    renderUsersTableData(users);
+                }
+            });
         };
 
         function requestNotificationPermission() {
@@ -943,39 +992,43 @@
             }
         }
 
-        function getStoredUsers() {
-            let users = JSON.parse(localStorage.getItem("sys616_users_list"));
-            if (!users) {
-                users = [
-                    { username: "admin", pass: "616", role: "admin" },
-                    { username: "operator", pass: "1234", role: "operator" }
-                ];
-                localStorage.setItem("sys616_users_list", JSON.stringify(users));
-            }
-            return users;
-        }
-
-        function checkLogin() {
+        async function checkLogin() {
             let user = document.getElementById("username").value.trim();
             let pass = document.getElementById("password").value;
             let feedback = document.getElementById("feedback");
 
-            let users = getStoredUsers();
-            let found = users.find(u => u.username === user && u.pass === pass);
-
-            if (found) {
-                feedback.innerText = "";
-                loggedInUser = found;
-
-                document.getElementById("login-screen").style.display = "none";
-                document.getElementById("dashboard-screen").style.display = "flex";
-                
-                document.getElementById("user-display-name").innerText = found.username + " (" + (found.role === 'admin' ? 'Админ' : 'Оператор') + ")";
-
-                applyRolePermissions(found.role);
-            } else {
+            if (!window.db) {
                 feedback.style.color = "#ff4d4d";
-                feedback.innerText = "Грешно име или парола!";
+                feedback.innerText = "Няма връзка с Firebase!";
+                return;
+            }
+
+            try {
+                const querySnapshot = await window.FirestoreAPI.getDocs(window.FirestoreAPI.collection(window.db, "users"));
+                let found = null;
+                querySnapshot.forEach(docSnap => {
+                    let u = docSnap.data();
+                    if (u.username === user && u.pass === pass) {
+                        found = u;
+                    }
+                });
+
+                if (found) {
+                    feedback.innerText = "";
+                    loggedInUser = found;
+
+                    document.getElementById("login-screen").style.display = "none";
+                    document.getElementById("dashboard-screen").style.display = "flex";
+                    document.getElementById("user-display-name").innerText = found.username + " (" + (found.role === 'admin' ? 'Админ' : 'Оператор') + ")";
+
+                    applyRolePermissions(found.role);
+                } else {
+                    feedback.style.color = "#ff4d4d";
+                    feedback.innerText = "Грешно име или парола!";
+                }
+            } catch (err) {
+                feedback.style.color = "#ff4d4d";
+                feedback.innerText = "Грешка при вход към базата данни.";
             }
         }
 
@@ -998,7 +1051,6 @@
             }
             openPage('requests', document.getElementById('menu-btn-requests'));
             renderUpcomingCards();
-            renderUsersTable();
             renderMonthlySchedule();
         }
 
@@ -1025,20 +1077,15 @@
             document.getElementById("page-" + pageName).classList.add("active");
             if (clickedButton) clickedButton.classList.add("active");
 
-            if (pageName === 'requests') {
-                renderRequests();
-            } else if (pageName === 'upcoming') {
+            if (pageName === 'upcoming') {
                 renderUpcomingCards();
             } else if (pageName === 'schedule') {
                 renderMonthlySchedule();
-            } else if (pageName === 'users') {
-                renderUsersTable();
             }
         }
 
         function manualRefreshRequests() {
-            renderRequests();
-            alert("Списъкът е обновен!");
+            alert("Данните се синхронизират автоматично в реално време чрез Firebase!");
         }
 
         function playAlarmSound() {
@@ -1064,7 +1111,7 @@
             } catch (e) {}
         }
 
-        function registerNewUser() {
+        async function registerNewUser() {
             let uname = document.getElementById("new-user-name").value.trim();
             let upass = document.getElementById("new-user-pass").value;
             let urole = document.getElementById("new-user-role").value;
@@ -1074,46 +1121,267 @@
                 return;
             }
 
-            let users = getStoredUsers();
-            if (users.some(u => u.username === uname)) {
-                alert("Потребителят вече съществува!");
-                return;
+            try {
+                await window.FirestoreAPI.setDoc(window.FirestoreAPI.doc(window.db, "users", uname), {
+                    username: uname,
+                    pass: upass,
+                    role: urole
+                });
+                document.getElementById("new-user-name").value = "";
+                document.getElementById("new-user-pass").value = "";
+                alert("Успешно създаден потребител във Firebase!");
+            } catch (err) {
+                alert("Грешка при създаване на потребител.");
             }
-
-            users.push({ username: uname, pass: upass, role: urole });
-            localStorage.setItem("sys616_users_list", JSON.stringify(users));
-
-            document.getElementById("new-user-name").value = "";
-            document.getElementById("new-user-pass").value = "";
-            renderUsersTable();
-            alert("Успешно създаден потребител!");
         }
 
-        function renderUsersTable() {
+        function renderUsersTableData(users) {
             let tbody = document.getElementById("users-tbody");
             if (!tbody) return;
-            let users = getStoredUsers();
             tbody.innerHTML = "";
 
-            users.forEach((u, index) => {
+            users.forEach((u) => {
                 let tr = document.createElement("tr");
                 tr.innerHTML = `
                     <td><strong>${u.username}</strong></td>
                     <td>${u.role === 'admin' ? 'Администратор' : 'Оператор'}</td>
-                    <td>${u.username !== 'admin' ? `<button onclick="deleteUser(${index})" style="background:rgba(255,77,77,0.2); border:1px solid #ff4d4d; color:#ff4d4d; padding:4px 8px; border-radius:4px; cursor:pointer;">Изтрий</button>` : '-'}</td>
+                    <td>${u.username !== 'admin' ? `<button onclick="deleteUser('${u.username}')" style="background:rgba(255,77,77,0.2); border:1px solid #ff4d4d; color:#ff4d4d; padding:4px 8px; border-radius:4px; cursor:pointer;">Изтрий</button>` : '-'}</td>
                 `;
                 tbody.appendChild(tr);
             });
         }
 
-        function deleteUser(index) {
-            let users = getStoredUsers();
-            users.splice(index, 1);
-            localStorage.setItem("sys616_users_list", JSON.stringify(users));
-            renderUsersTable();
+        async function deleteUser(username) {
+            if (!confirm("Сигурни ли сте, че искате да изтриете този потребител?")) return;
+            try {
+                await window.FirestoreAPI.deleteDoc(window.FirestoreAPI.doc(window.db, "users", username));
+            } catch (err) {
+                alert("Грешка при изтриване.");
+            }
         }
 
-        /* ===== МЕСЕЧЕН ГРАФИК ЛОГИКА ===== */
+        function renderRequestsData(requests) {
+            let tbody = document.getElementById("requests-tbody");
+            if (!tbody) return;
+
+            if (requests.length > lastKnownRequestCount && lastKnownRequestCount > 0) {
+                playAlarmSound();
+                triggerBrowserNotification("Нова заявка в Система 616", "Влязла е нова оперативна заявка.");
+            }
+            lastKnownRequestCount = requests.length;
+
+            tbody.innerHTML = "";
+            if (requests.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #9ca3af;">Няма налични заявки.</td></tr>`;
+                return;
+            }
+
+            requests.forEach((req) => {
+                let tr = document.createElement("tr");
+                if (req.emergency) {
+                    tr.classList.add("blinking-row");
+                }
+                tr.innerHTML = `
+                    <td>${req.date}</td>
+                    <td><strong>${req.location}</strong></td>
+                    <td>${req.type}</td>
+                    <td><span style="color:${req.status === 'Активна' ? '#00d2ff' : '#34d399'}">${req.status}</span></td>
+                    <td>${req.comment || '-'}</td>
+                    <td>
+                        <button onclick="toggleStatus('${req.id}', '${req.status}')" style="background:rgba(0,210,255,0.2); border:1px solid #00d2ff; color:#00d2ff; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:11px;">Статус</button>
+                        ${loggedInUser && loggedInUser.role === 'admin' ? `<button onclick="deleteRequest('${req.id}')" style="background:rgba(255,77,77,0.2); border:1px solid #ff4d4d; color:#ff4d4d; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:11px; margin-left:5px;">Изтрий</button>` : ''}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function addRequest() {
+            let loc = document.getElementById("req-location").value.trim();
+            let type = document.getElementById("req-type").value;
+            let emergency = document.getElementById("req-emergency").checked;
+            let comment = document.getElementById("req-comment").value.trim();
+
+            if (!loc) {
+                alert("Моля, въведете име на обект!");
+                return;
+            }
+
+            let now = new Date();
+            let dateStr = now.toLocaleDateString() + " " + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            try {
+                await window.FirestoreAPI.addDoc(window.FirestoreAPI.collection(window.db, "requests"), {
+                    date: dateStr,
+                    location: loc,
+                    type: type,
+                    status: "Активна",
+                    emergency: emergency,
+                    comment: comment,
+                    timestamp: Date.now()
+                });
+
+                document.getElementById("req-location").value = "";
+                document.getElementById("req-comment").value = "";
+                document.getElementById("req-emergency").checked = false;
+                playAlarmSound();
+                triggerBrowserNotification("Нова заявка създадена", loc);
+            } catch (err) {
+                alert("Грешка при запис в базата данни.");
+            }
+        }
+
+        async function toggleStatus(id, currentStatus) {
+            let newStatus = currentStatus === "Активна" ? "Изпълнена" : "Активна";
+            try {
+                await window.FirestoreAPI.updateDoc(window.FirestoreAPI.doc(window.db, "requests", id), {
+                    status: newStatus
+                });
+            } catch (err) {
+                alert("Грешка при обновяване на статуса.");
+            }
+        }
+
+        async function deleteRequest(id) {
+            try {
+                await window.FirestoreAPI.deleteDoc(window.FirestoreAPI.doc(window.db, "requests", id));
+            } catch (err) {
+                alert("Грешка при изтриване.");
+            }
+        }
+
+        function switchUpcomingRoute(routeKey, btn) {
+            currentUpcomingKey = routeKey;
+            currentUpcomingTitle = btn.innerText;
+
+            document.querySelectorAll(".upcoming-tab").forEach(tab => tab.classList.remove("active"));
+            btn.classList.add("active");
+            document.getElementById("upcoming-route-title").innerText = currentUpcomingTitle;
+
+            renderUpcomingCards();
+        }
+
+        function renderUpcomingCards() {
+            let container = document.getElementById("upcoming-cards-container");
+            if (!container) return;
+            container.innerHTML = "";
+
+            let allData = JSON.parse(localStorage.getItem("sys616_upcoming_plans")) || {};
+            let routeRecords = allData[currentUpcomingKey] || [];
+
+            if (routeRecords.length === 0) {
+                container.innerHTML = `<div style="color: #9ca3af; font-size: 13px;">Няма записани планове за ${currentUpcomingTitle}.</div>`;
+                return;
+            }
+
+            routeRecords.forEach((rec, idx) => {
+                let card = document.createElement("div");
+                card.style.cssText = "background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 12px; margin-bottom: 10px;";
+                card.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <strong style="color: #00d2ff; font-size: 14px;">📅 ${rec.date}</strong>
+                        ${loggedInUser && loggedInUser.role === 'admin' ? `<div>
+                            <button onclick="editUpcomingRecord(${idx})" style="background:none; border:none; color:#00d2ff; cursor:pointer; font-size:12px; margin-right:8px;">Редактирай</button>
+                            <button onclick="deleteUpcomingRecord(${idx})" style="background:none; border:none; color:#ff4d4d; cursor:pointer; font-size:12px;">Изтрий</button>
+                        </div>` : ''}
+                    </div>
+                    <div style="font-size: 12px; color: #d1d5db; display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+                        <div><strong>ОББ:</strong> ${rec.obb || '-'}</div>
+                        <div><strong>БПБ:</strong> ${rec.bpb || '-'}</div>
+                        <div><strong>АББ:</strong> ${rec.abb || '-'}</div>
+                        <div><strong>ЮРОНЕТ:</strong> ${rec.euronet || '-'}</div>
+                    </div>
+                    <div style="font-size: 12px; color: #d1d5db; margin-top: 6px;"><strong>КЛИЕНТИ:</strong> ${rec.clients || '-'}</div>
+                    <div style="font-size: 12px; color: #9ca3af; margin-top: 4px;"><strong>ИНФОРМАЦИЯ:</strong> ${rec.info || '-'}</div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function openUpcomingModal(editIdx = null) {
+            editingIndex = editIdx;
+            let modal = document.getElementById("upcoming-modal");
+            let titleEl = document.getElementById("modal-title");
+
+            if (editIdx !== null) {
+                titleEl.innerText = "Редактиране на план (" + currentUpcomingTitle + ")";
+                let allData = JSON.parse(localStorage.getItem("sys616_upcoming_plans")) || {};
+                let rec = allData[currentUpcomingKey][editIdx];
+
+                document.getElementById("modal-date").value = rec.date || "";
+                document.getElementById("modal-obb").value = rec.obb || "";
+                document.getElementById("modal-bpb").value = rec.bpb || "";
+                document.getElementById("modal-abb").value = rec.abb || "";
+                document.getElementById("modal-euronet").value = rec.euronet || "";
+                document.getElementById("modal-clients").value = rec.clients || "";
+                document.getElementById("modal-info").value = rec.info || "";
+            } else {
+                titleEl.innerText = "Нов план за " + currentUpcomingTitle;
+                document.getElementById("modal-date").value = "";
+                document.getElementById("modal-obb").value = "";
+                document.getElementById("modal-bpb").value = "";
+                document.getElementById("modal-abb").value = "";
+                document.getElementById("modal-euronet").value = "";
+                document.getElementById("modal-clients").value = "";
+                document.getElementById("modal-info").value = "";
+            }
+
+            modal.style.display = "flex";
+        }
+
+        function closeUpcomingModal() {
+            document.getElementById("upcoming-modal").style.display = "none";
+            editingIndex = null;
+        }
+
+        function saveUpcomingRecord() {
+            let date = document.getElementById("modal-date").value.trim();
+            if (!date) {
+                alert("Моля, въведете дата!");
+                return;
+            }
+
+            let newRecord = {
+                date: date,
+                obb: document.getElementById("modal-obb").value.trim(),
+                bpb: document.getElementById("modal-bpb").value.trim(),
+                abb: document.getElementById("modal-abb").value.trim(),
+                euronet: document.getElementById("modal-euronet").value.trim(),
+                clients: document.getElementById("modal-clients").value.trim(),
+                info: document.getElementById("modal-info").value.trim()
+            };
+
+            let allData = JSON.parse(localStorage.getItem("sys616_upcoming_plans")) || {};
+            if (!allData[currentUpcomingKey]) {
+                allData[currentUpcomingKey] = [];
+            }
+
+            if (editingIndex !== null) {
+                allData[currentUpcomingKey][editingIndex] = newRecord;
+            } else {
+                allData[currentUpcomingKey].unshift(newRecord);
+            }
+
+            localStorage.setItem("sys616_upcoming_plans", JSON.stringify(allData));
+            closeUpcomingModal();
+            renderUpcomingCards();
+        }
+
+        function editUpcomingRecord(idx) {
+            openUpcomingModal(idx);
+        }
+
+        function deleteUpcomingRecord(idx) {
+            if (!confirm("Сигурни ли сте, че искате да изтриете този запис?")) return;
+            let allData = JSON.parse(localStorage.getItem("sys616_upcoming_plans")) || {};
+            if (allData[currentUpcomingKey]) {
+                allData[currentUpcomingKey].splice(idx, 1);
+                localStorage.setItem("sys616_upcoming_plans", JSON.stringify(allData));
+                renderUpcomingCards();
+            }
+        }
+
+        /* ===== МЕСЕЧЕН ГРАФИК ===== */
         function renderMonthlySchedule() {
             document.getElementById("schedule-month-title").innerText = `${monthNames[currentScheduleMonth]} ${currentScheduleYear}`;
             let thead = document.getElementById("schedule-thead");
@@ -1247,227 +1515,6 @@
 
             localStorage.setItem(`sys616_schedule_${currentScheduleYear}_${currentScheduleMonth}`, JSON.stringify(savedData));
             alert("Месечният график е записан успешно!");
-        }
-
-        /* ===== ОПЕРАТИВНИ ЗАЯВКИ И ДРУГИ ===== */
-        function renderRequests() {
-            let tbody = document.getElementById("requests-tbody");
-            if (!tbody) return;
-            let requests = JSON.parse(localStorage.getItem("sys616_requests")) || [];
-            
-            if (requests.length > lastKnownRequestCount) {
-                let newest = requests[0];
-                playAlarmSound();
-                triggerBrowserNotification("Нова заявка в Система 616", newest.location + " (" + newest.type + ")");
-                lastKnownRequestCount = requests.length;
-            }
-
-            tbody.innerHTML = "";
-            if (requests.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #9ca3af;">Няма налични заявки.</td></tr>`;
-                return;
-            }
-
-            requests.forEach((req, index) => {
-                let tr = document.createElement("tr");
-                if (req.emergency) {
-                    tr.classList.add("blinking-row");
-                }
-                tr.innerHTML = `
-                    <td>${req.date}</td>
-                    <td><strong>${req.location}</strong></td>
-                    <td>${req.type}</td>
-                    <td><span style="color:${req.status === 'Активна' ? '#00d2ff' : '#34d399'}">${req.status}</span></td>
-                    <td>${req.comment || '-'}</td>
-                    <td>
-                        <button onclick="toggleStatus(${index})" style="background:rgba(0,210,255,0.2); border:1px solid #00d2ff; color:#00d2ff; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:11px;">Статус</button>
-                        ${loggedInUser && loggedInUser.role === 'admin' ? `<button onclick="deleteRequest(${index})" style="background:rgba(255,77,77,0.2); border:1px solid #ff4d4d; color:#ff4d4d; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:11px; margin-left:5px;">Изтрий</button>` : ''}
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        function addRequest() {
-            let loc = document.getElementById("req-location").value.trim();
-            let type = document.getElementById("req-type").value;
-            let emergency = document.getElementById("req-emergency").checked;
-            let comment = document.getElementById("req-comment").value.trim();
-
-            if (!loc) {
-                alert("Моля, въведете име на обект!");
-                return;
-            }
-
-            let now = new Date();
-            let dateStr = now.toLocaleDateString() + " " + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-            let requests = JSON.parse(localStorage.getItem("sys616_requests")) || [];
-            requests.unshift({
-                date: dateStr,
-                location: loc,
-                type: type,
-                status: "Активна",
-                emergency: emergency,
-                comment: comment
-            });
-
-            localStorage.setItem("sys616_requests", JSON.stringify(requests));
-            lastKnownRequestCount = requests.length;
-
-            document.getElementById("req-location").value = "";
-            document.getElementById("req-comment").value = "";
-            document.getElementById("req-emergency").checked = false;
-
-            renderRequests();
-            playAlarmSound();
-            triggerBrowserNotification("Нова заявка създадена", loc);
-        }
-
-        function toggleStatus(index) {
-            let requests = JSON.parse(localStorage.getItem("sys616_requests")) || [];
-            requests[index].status = requests[index].status === "Активна" ? "Изпълнена" : "Активна";
-            localStorage.setItem("sys616_requests", JSON.stringify(requests));
-            renderRequests();
-        }
-
-        function deleteRequest(index) {
-            let requests = JSON.parse(localStorage.getItem("sys616_requests")) || [];
-            requests.splice(index, 1);
-            localStorage.setItem("sys616_requests", JSON.stringify(requests));
-            lastKnownRequestCount = requests.length;
-            renderRequests();
-        }
-
-        function switchUpcomingRoute(routeKey, btn) {
-            currentUpcomingKey = routeKey;
-            currentUpcomingTitle = btn.innerText;
-
-            document.querySelectorAll(".upcoming-tab").forEach(tab => tab.classList.remove("active"));
-            btn.classList.add("active");
-            document.getElementById("upcoming-route-title").innerText = currentUpcomingTitle;
-
-            renderUpcomingCards();
-        }
-
-        function renderUpcomingCards() {
-            let container = document.getElementById("upcoming-cards-container");
-            if (!container) return;
-            container.innerHTML = "";
-
-            let allData = JSON.parse(localStorage.getItem("sys616_upcoming_plans")) || {};
-            let routeRecords = allData[currentUpcomingKey] || [];
-
-            if (routeRecords.length === 0) {
-                container.innerHTML = `<div style="color: #9ca3af; font-size: 13px;">Няма записани планове за ${currentUpcomingTitle}.</div>`;
-                return;
-            }
-
-            routeRecords.forEach((rec, idx) => {
-                let card = document.createElement("div");
-                card.style.cssText = "background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 12px; margin-bottom: 10px;";
-                card.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                        <strong style="color: #00d2ff; font-size: 14px;">📅 ${rec.date}</strong>
-                        ${loggedInUser && loggedInUser.role === 'admin' ? `<div>
-                            <button onclick="editUpcomingRecord(${idx})" style="background:none; border:none; color:#00d2ff; cursor:pointer; font-size:12px; margin-right:8px;">Редактирай</button>
-                            <button onclick="deleteUpcomingRecord(${idx})" style="background:none; border:none; color:#ff4d4d; cursor:pointer; font-size:12px;">Изтрий</button>
-                        </div>` : ''}
-                    </div>
-                    <div style="font-size: 12px; color: #d1d5db; display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
-                        <div><strong>ОББ:</strong> ${rec.obb || '-'}</div>
-                        <div><strong>БПБ:</strong> ${rec.bpb || '-'}</div>
-                        <div><strong>АББ:</strong> ${rec.abb || '-'}</div>
-                        <div><strong>ЮРОНЕТ:</strong> ${rec.euronet || '-'}</div>
-                    </div>
-                    <div style="font-size: 12px; color: #d1d5db; margin-top: 6px;"><strong>КЛИЕНТИ:</strong> ${rec.clients || '-'}</div>
-                    <div style="font-size: 12px; color: #9ca3af; margin-top: 4px;"><strong>ИНФОРМАЦИЯ:</strong> ${rec.info || '-'}</div>
-                `;
-                container.appendChild(card);
-            });
-        }
-
-        function openUpcomingModal(editIdx = null) {
-            editingIndex = editIdx;
-            let modal = document.getElementById("upcoming-modal");
-            let titleEl = document.getElementById("modal-title");
-
-            if (editIdx !== null) {
-                titleEl.innerText = "Редактиране на план (" + currentUpcomingTitle + ")";
-                let allData = JSON.parse(localStorage.getItem("sys616_upcoming_plans")) || {};
-                let rec = allData[currentUpcomingKey][editIdx];
-
-                document.getElementById("modal-date").value = rec.date || "";
-                document.getElementById("modal-obb").value = rec.obb || "";
-                document.getElementById("modal-bpb").value = rec.bpb || "";
-                document.getElementById("modal-abb").value = rec.abb || "";
-                document.getElementById("modal-euronet").value = rec.euronet || "";
-                document.getElementById("modal-clients").value = rec.clients || "";
-                document.getElementById("modal-info").value = rec.info || "";
-            } else {
-                titleEl.innerText = "Нов план за " + currentUpcomingTitle;
-                document.getElementById("modal-date").value = "";
-                document.getElementById("modal-obb").value = "";
-                document.getElementById("modal-bpb").value = "";
-                document.getElementById("modal-abb").value = "";
-                document.getElementById("modal-euronet").value = "";
-                document.getElementById("modal-clients").value = "";
-                document.getElementById("modal-info").value = "";
-            }
-
-            modal.style.display = "flex";
-        }
-
-        function closeUpcomingModal() {
-            document.getElementById("upcoming-modal").style.display = "none";
-            editingIndex = null;
-        }
-
-        function saveUpcomingRecord() {
-            let date = document.getElementById("modal-date").value.trim();
-            if (!date) {
-                alert("Моля, въведете дата!");
-                return;
-            }
-
-            let newRecord = {
-                date: date,
-                obb: document.getElementById("modal-obb").value.trim(),
-                bpb: document.getElementById("modal-bpb").value.trim(),
-                abb: document.getElementById("modal-abb").value.trim(),
-                euronet: document.getElementById("modal-euronet").value.trim(),
-                clients: document.getElementById("modal-clients").value.trim(),
-                info: document.getElementById("modal-info").value.trim()
-            };
-
-            let allData = JSON.parse(localStorage.getItem("sys616_upcoming_plans")) || {};
-            if (!allData[currentUpcomingKey]) {
-                allData[currentUpcomingKey] = [];
-            }
-
-            if (editingIndex !== null) {
-                allData[currentUpcomingKey][editingIndex] = newRecord;
-            } else {
-                allData[currentUpcomingKey].unshift(newRecord);
-            }
-
-            localStorage.setItem("sys616_upcoming_plans", JSON.stringify(allData));
-            closeUpcomingModal();
-            renderUpcomingCards();
-        }
-
-        function editUpcomingRecord(idx) {
-            openUpcomingModal(idx);
-        }
-
-        function deleteUpcomingRecord(idx) {
-            if (!confirm("Сигурни ли сте, че искате да изтриете този запис?")) return;
-            let allData = JSON.parse(localStorage.getItem("sys616_upcoming_plans")) || {};
-            if (allData[currentUpcomingKey]) {
-                allData[currentUpcomingKey].splice(idx, 1);
-                localStorage.setItem("sys616_upcoming_plans", JSON.stringify(allData));
-                renderUpcomingCards();
-            }
         }
     </script>
 </body>
