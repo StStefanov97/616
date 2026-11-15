@@ -178,7 +178,7 @@
             position: relative;
             z-index: 2;
             width: 100%;
-            max-width: 1250px;
+            max-width: 1350px;
             min-height: 96vh;
             background: rgba(15, 18, 28, 0.95);
             backdrop-filter: blur(20px);
@@ -463,52 +463,120 @@
             .upcoming-content-panel { overflow-y: auto; height: 100%; padding-right: 5px; }
         }
 
-        /* Месечен график / Календар стилове */
-        .calendar-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 6px;
-            margin-top: 10px;
-        }
-        .cal-header-cell {
-            text-align: center;
-            font-size: 12px;
-            font-weight: bold;
-            color: #00d2ff;
-            padding: 6px;
-            background: rgba(0, 113, 227, 0.15);
-            border-radius: 6px;
-        }
-        .cal-cell {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 8px;
-            min-height: 75px;
-            padding: 6px;
-            font-size: 11px;
+        /* Стил за Месечен график */
+        .schedule-header-bar {
             display: flex;
-            flex-direction: column;
             justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            border-radius: 12px;
         }
-        .cal-cell.empty {
-            background: transparent;
-            border: none;
+        .month-navigator {
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
-        .cal-date-num {
-            font-weight: bold;
-            color: #d1d5db;
+        .btn-month-nav {
+            background: rgba(0, 210, 255, 0.15);
+            border: 1px solid rgba(0, 210, 255, 0.4);
+            color: #00d2ff;
+            padding: 5px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 13px;
         }
-        .cal-note-input {
-            background: rgba(0, 0, 0, 0.5);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 4px;
-            color: white;
-            font-size: 10px;
-            padding: 3px;
+        .month-display-title {
+            font-size: 16px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: #00d2ff;
+            min-width: 170px;
+            text-align: center;
+        }
+        .schedule-table-wrapper {
             width: 100%;
-            margin-top: 4px;
-            resize: none;
+            overflow-x: auto;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 10px;
+            background: rgba(10, 12, 20, 0.6);
         }
+        .schedule-table {
+            width: max-content;
+            min-width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        .schedule-table th, .schedule-table td {
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+            padding: 6px 4px;
+            min-width: 48px;
+        }
+        .schedule-table th.col-names,
+        .schedule-table td.col-names {
+            position: sticky;
+            left: 0;
+            z-index: 5;
+            min-width: 180px;
+            max-width: 200px;
+            text-align: left;
+            padding: 8px 12px;
+            background: #131826;
+            border-right: 2px solid rgba(0, 210, 255, 0.4);
+            font-weight: 600;
+            color: #ffffff;
+        }
+        .schedule-table th.col-names {
+            z-index: 6;
+            background: #0e1729;
+            color: #00d2ff;
+            font-size: 13px;
+            text-transform: uppercase;
+        }
+        .day-header-num { font-size: 13px; font-weight: 700; display: block; }
+        .day-header-name { font-size: 10px; opacity: 0.85; display: block; text-transform: uppercase; }
+        .col-weekend { background-color: rgba(148, 163, 184, 0.22) !important; color: #cbd5e1; }
+        .col-holiday { background-color: rgba(239, 68, 68, 0.32) !important; color: #fca5a5; }
+        
+        @keyframes today-col-blink {
+            0% { background-color: rgba(0, 210, 255, 0.45); box-shadow: inset 0 0 12px rgba(0, 210, 255, 0.8); }
+            50% { background-color: rgba(0, 210, 255, 0.08); box-shadow: inset 0 0 2px rgba(0, 210, 255, 0.2); }
+            100% { background-color: rgba(0, 210, 255, 0.45); box-shadow: inset 0 0 12px rgba(0, 210, 255, 0.8); }
+        }
+        .col-today-blink {
+            animation: today-col-blink 1.1s infinite ease-in-out !important;
+            border-left: 2px solid #00d2ff !important;
+            border-right: 2px solid #00d2ff !important;
+        }
+        .schedule-select {
+            width: 44px;
+            padding: 4px 2px;
+            font-size: 12px;
+            font-weight: 700;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.55);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 6px;
+            color: #ffffff;
+            cursor: pointer;
+            appearance: none;
+            -webkit-appearance: none;
+        }
+        .schedule-select option { background: #121622; color: #ffffff; font-weight: 600; }
+        .val-1 { background: rgba(0, 113, 227, 0.45); border-color: #38bdf8; color: #e0f2fe; }
+        .val-2 { background: rgba(16, 185, 129, 0.4); border-color: #34d399; color: #d1fae5; }
+        .val-3 { background: rgba(168, 85, 247, 0.45); border-color: #c084fc; color: #f3e8ff; }
+        .val-4 { background: rgba(245, 158, 11, 0.45); border-color: #fbbf24; color: #fef3c7; }
+        .val-5 { background: rgba(236, 72, 153, 0.45); border-color: #f472b6; color: #fce7f3; }
+        .val-D { background: rgba(6, 182, 212, 0.45); border-color: #22d3ee; color: #cffafe; }
+        .val-O { background: rgba(239, 68, 68, 0.45); border-color: #f87171; color: #fee2e2; }
     </style>
 </head>
 <body>
@@ -553,7 +621,7 @@
             <div class="sidebar" id="sidebar-menu">
                 <button class="nav-btn active" onclick="openPage('requests', this)" id="menu-btn-requests">Заявки</button>
                 <button class="nav-btn" onclick="openPage('upcoming', this)" id="menu-btn-upcoming">Предстоящи</button>
-                <button class="nav-btn" onclick="openPage('calendar', this)" id="menu-btn-calendar">Месечен график</button>
+                <button class="nav-btn" onclick="openPage('schedule', this)" id="menu-btn-schedule">Месечен график</button>
                 <button class="nav-btn admin-only" onclick="openPage('users', this)" id="menu-btn-users" style="display: none;">Потребители</button>
             </div>
 
@@ -648,16 +716,33 @@
                 </div>
 
                 <!-- ПОДСТРАНИЦА: МЕСЕЧЕН ГРАФИК -->
-                <div id="page-calendar" class="page-section">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
-                        <h3 style="font-size: 17px; color: #ffffff;">Месечен график (Календар)</h3>
-                        <div style="display: flex; gap: 8px; align-items: center;">
-                            <button onclick="changeMonth(-1)" class="btn-save" style="padding: 5px 10px; font-size: 12px;">◀</button>
-                            <span id="calendar-month-title" style="color: #00d2ff; font-weight: bold; font-size: 14px;">Месец</span>
-                            <button onclick="changeMonth(1)" class="btn-save" style="padding: 5px 10px; font-size: 12px;">▶</button>
+                <div id="page-schedule" class="page-section">
+                    <div class="schedule-header-bar">
+                        <div class="month-navigator">
+                            <button class="btn-month-nav" onclick="changeScheduleMonth(-1)">◀</button>
+                            <div id="schedule-month-title" class="month-display-title">НОЕМВРИ 2026</div>
+                            <button class="btn-month-nav" onclick="changeScheduleMonth(1)">▶</button>
+                        </div>
+
+                        <div id="admin-schedule-controls" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                            <input type="text" id="schedule-extra-person" placeholder="Име за добавяне..." style="width: 150px;">
+                            <button class="btn-save" onclick="addSchedulePerson()" style="background: rgba(0, 210, 255, 0.2); border: 1px solid #00d2ff; padding: 7px 12px; font-size: 12px;">+ Име</button>
+                            <button class="btn-save" onclick="saveMonthlySchedule()" style="padding: 7px 12px; font-size: 12px;">💾 Запиши графика</button>
                         </div>
                     </div>
-                    <div id="calendar-container"></div>
+
+                    <div class="schedule-table-wrapper">
+                        <table class="schedule-table" id="monthly-schedule-table">
+                            <thead id="schedule-thead"></thead>
+                            <tbody id="schedule-tbody"></tbody>
+                        </table>
+                    </div>
+                    
+                    <div style="display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; font-size: 11px; color: #cbd5e1; align-items: center;">
+                        <div><span style="display:inline-block; width:12px; height:12px; background:rgba(148,163,184,0.35); border-radius:3px;"></span> Събота / Неделя</div>
+                        <div><span style="display:inline-block; width:12px; height:12px; background:rgba(239,68,68,0.45); border-radius:3px;"></span> Празник</div>
+                        <div><strong>1–5:</strong> Маршрут | <strong>Д:</strong> Дежурен | <strong>О:</strong> Отпуск</div>
+                    </div>
                 </div>
 
                 <!-- ПОДСТРАНИЦА: ПОТРЕБИТЕЛИ (Само за Админ) -->
@@ -753,16 +838,21 @@
         let cloudRequests = [];
         let cloudUsers = [];
         let cloudUpcoming = [];
-        let cloudCalendar = {};
+        let cloudSchedule = {};
         let initialRequestsLoaded = false;
 
-        let currentCalendarDate = new Date();
+        // Променливи за месечен график
+        const bgMonths = ["ЯНУАРИ", "ФЕВРУАРИ", "МАРТ", "АПРИЛ", "МАЙ", "ЮНИ", "ЮЛИ", "АВГУСТ", "СЕПТЕМВРИ", "ОКТОМВРИ", "НОЕМВРИ", "ДЕКЕМВРИ"];
+        const bgWeekdaysShort = ["Нд", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
+        let scheduleYear = new Date().getFullYear();
+        let scheduleMonth = new Date().getMonth();
+        let scheduleBlinkActive = true;
 
         async function ensureDefaultUsers() {
             const snap = await db.collection("users").get();
             if (snap.empty) {
-                await db.collection("users").doc("admin").set({ username: "admin", pass: "616", role: "admin" });
-                await db.collection("users").doc("operator").set({ username: "operator", pass: "1234", role: "operator" });
+                await db.collection("users").doc("admin").set({ username: "admin", pass: "616", role: "admin", name: "Администратор" });
+                await db.collection("users").doc("operator").set({ username: "operator", pass: "1234", role: "operator", name: "Оператор 1" });
             }
         }
 
@@ -771,6 +861,7 @@
                 cloudUsers = [];
                 snapshot.forEach(doc => cloudUsers.push({ id: doc.id, ...doc.data() }));
                 renderUsersTable();
+                renderMonthlySchedule();
             });
 
             db.collection("requests").orderBy("timestamp", "desc").onSnapshot(snapshot => {
@@ -802,12 +893,12 @@
                 renderUpcomingCards();
             });
 
-            db.collection("calendar").onSnapshot(snapshot => {
-                cloudCalendar = {};
+            db.collection("schedule").onSnapshot(snapshot => {
+                cloudSchedule = {};
                 snapshot.forEach(doc => {
-                    cloudCalendar[doc.id] = doc.data().note || "";
+                    cloudSchedule[doc.id] = doc.data();
                 });
-                renderCalendar();
+                renderMonthlySchedule();
             });
         }
 
@@ -845,8 +936,8 @@
             let feedback = document.getElementById("feedback");
 
             let list = cloudUsers.length > 0 ? cloudUsers : [
-                { username: "admin", pass: "616", role: "admin" },
-                { username: "operator", pass: "1234", role: "operator" }
+                { username: "admin", pass: "616", role: "admin", name: "Администратор" },
+                { username: "operator", pass: "1234", role: "operator", name: "Оператор 1" }
             ];
 
             let found = list.find(u => u.username === user && u.pass === pass);
@@ -870,21 +961,24 @@
         function applyRolePermissions(role) {
             let adminReqForm = document.getElementById("admin-request-form");
             let adminUpcomingBtnBox = document.getElementById("admin-upcoming-btn-box");
+            let adminScheduleControls = document.getElementById("admin-schedule-controls");
             let menuUsers = document.getElementById("menu-btn-users");
 
             if (role === "operator") {
                 if (adminReqForm) adminReqForm.style.display = "none";
                 if (adminUpcomingBtnBox) adminUpcomingBtnBox.style.display = "none";
+                if (adminScheduleControls) adminScheduleControls.style.display = "none";
                 if (menuUsers) menuUsers.style.display = "none";
             } else {
                 if (adminReqForm) adminReqForm.style.display = "block";
                 if (adminUpcomingBtnBox) adminUpcomingBtnBox.style.display = "block";
+                if (adminScheduleControls) adminScheduleControls.style.display = "flex";
                 if (menuUsers) menuUsers.style.display = "block";
             }
             openPage('requests', document.getElementById('menu-btn-requests'));
             renderRequests();
             renderUpcomingCards();
-            renderCalendar();
+            renderMonthlySchedule();
             renderUsersTable();
         }
 
@@ -906,8 +1000,8 @@
             document.getElementById("page-" + pageName).classList.add("active");
             if (clickedButton) clickedButton.classList.add("active");
 
-            if (pageName === 'calendar') {
-                renderCalendar();
+            if (pageName === 'schedule') {
+                renderMonthlySchedule();
             }
         }
 
@@ -952,7 +1046,8 @@
             await db.collection("users").doc(uname).set({
                 username: uname,
                 pass: upass,
-                role: urole
+                role: urole,
+                name: uname
             });
 
             document.getElementById("new-user-name").value = "";
@@ -1194,66 +1289,194 @@
             }
         }
 
-        function changeMonth(direction) {
-            currentCalendarDate.setMonth(currentCalendarDate.getMonth() + direction);
-            renderCalendar();
+        // --- ЛОГИКА ЗА МЕСЕЧЕН ГРАФИК ---
+        function getOrthodoxEaster(year) {
+            let a = year % 4, b = year % 7, c = year % 19;
+            let d = (19 * c + 15) % 30;
+            let e = (2 * a + 4 * b - d + 34) % 7;
+            let month = Math.floor((d + e + 114) / 31);
+            let day = ((d + e + 114) % 31) + 1;
+            let julianDate = new Date(year, month - 1, day);
+            julianDate.setDate(julianDate.getDate() + 13);
+            return julianDate;
         }
 
-        function renderCalendar() {
-            let container = document.getElementById("calendar-container");
-            let titleEl = document.getElementById("calendar-month-title");
-            if (!container || !titleEl) return;
+        function isBulgarianHoliday(year, month, day) {
+            const fixedHolidays = ["0-1", "2-3", "4-1", "4-6", "4-24", "8-6", "8-22", "11-24", "11-25", "11-26"];
+            if (fixedHolidays.includes(`${month}-${day}`)) return true;
 
-            let year = currentCalendarDate.getFullYear();
-            let month = currentCalendarDate.getMonth();
+            let easterSunday = getOrthodoxEaster(year);
+            for (let offset = -2; offset <= 1; offset++) {
+                let d = new Date(easterSunday);
+                d.setDate(d.getDate() + offset);
+                if (d.getFullYear() === year && d.getMonth() === month && d.getDate() === day) return true;
+            }
+            return false;
+        }
 
-            const monthNames = ["Януари", "Февруари", "Март", "Април", "Май", "Юни", "Юли", "Август", "Септември", "Октомври", "Ноември", "Декември"];
-            titleEl.innerText = monthNames[month] + " " + year;
+        function getSchedulePeople() {
+            let users = cloudUsers.map(u => u.name || u.username);
+            let extraPeople = JSON.parse(localStorage.getItem("sys616_schedule_extra_people")) || [];
+            let combined = [...users];
+            extraPeople.forEach(p => { if (!combined.includes(p)) combined.push(p); });
+            return combined;
+        }
 
-            let firstDayIndex = new Date(year, month, 1).getDay();
-            firstDayIndex = (firstDayIndex === 0) ? 6 : firstDayIndex - 1;
+        function addSchedulePerson() {
+            let input = document.getElementById("schedule-extra-person");
+            let name = input.value.trim();
+            if (!name) { alert("Въведете име на служител!"); return; }
+            let extraPeople = JSON.parse(localStorage.getItem("sys616_schedule_extra_people")) || [];
+            let allPeople = getSchedulePeople();
+            if (allPeople.includes(name)) { alert("Това име вече присъства в графика!"); return; }
+            extraPeople.push(name);
+            localStorage.setItem("sys616_schedule_extra_people", JSON.stringify(extraPeople));
+            input.value = "";
+            renderMonthlySchedule();
+        }
 
-            let totalDays = new Date(year, month + 1, 0).getDate();
+        function removeExtraSchedulePerson(name) {
+            if (confirm(`Премахване на "${name}" от месечния график?`)) {
+                let extraPeople = JSON.parse(localStorage.getItem("sys616_schedule_extra_people")) || [];
+                extraPeople = extraPeople.filter(p => p !== name);
+                localStorage.setItem("sys616_schedule_extra_people", JSON.stringify(extraPeople));
+                renderMonthlySchedule();
+            }
+        }
 
-            let html = '<div class="calendar-grid">';
-            const daysOfWeek = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Нд"];
-            daysOfWeek.forEach(d => {
-                html += `<div class="cal-header-cell">${d}</div>`;
+        function changeScheduleMonth(delta) {
+            scheduleMonth += delta;
+            if (scheduleMonth < 0) { scheduleMonth = 11; scheduleYear--; }
+            else if (scheduleMonth > 11) { scheduleMonth = 0; scheduleYear++; }
+            renderMonthlySchedule();
+        }
+
+        function getScheduleStorageKey() {
+            return `${scheduleYear}_${scheduleMonth}`;
+        }
+
+        function updateScheduleCellStyle(selectEl) {
+            selectEl.className = "schedule-select";
+            if (selectEl.value) { selectEl.classList.add("val-" + selectEl.value); }
+        }
+
+        async function onScheduleCellChange(person, day, selectEl) {
+            updateScheduleCellStyle(selectEl);
+            let key = getScheduleStorageKey();
+            let monthData = cloudSchedule[key] || {};
+            if (!monthData[person]) monthData[person] = {};
+            monthData[person][day] = selectEl.value;
+
+            await db.collection("schedule").doc(key).set(monthData);
+        }
+
+        async function saveMonthlySchedule() {
+            let key = getScheduleStorageKey();
+            let monthData = {};
+            let selects = document.querySelectorAll("#schedule-tbody .schedule-select");
+
+            selects.forEach(sel => {
+                let person = sel.getAttribute("data-person");
+                let day = sel.getAttribute("data-day");
+                if (!monthData[person]) monthData[person] = {};
+                monthData[person][day] = sel.value;
             });
 
-            for (let i = 0; i < firstDayIndex; i++) {
-                html += `<div class="cal-cell empty"></div>`;
-            }
-
-            let isAdmin = loggedInUser && loggedInUser.role === 'admin';
-
-            for (let day = 1; day <= totalDays; day++) {
-                let dayStr = String(day).padStart(2, '0');
-                let monthStr = String(month + 1).padStart(2, '0');
-                let dateKey = `${dayStr}-${monthStr}-${year}`;
-                let noteValue = cloudCalendar[dateKey] || "";
-
-                if (isAdmin) {
-                    html += `<div class="cal-cell">
-                        <div class="cal-date-num">${day}</div>
-                        <textarea class="cal-note-input" rows="2" placeholder="Забележка..." onchange="saveCalendarNote('${dateKey}', this.value)">${noteValue}</textarea>
-                    </div>`;
-                } else {
-                    html += `<div class="cal-cell">
-                        <div class="cal-date-num">${day}</div>
-                        <div style="font-size: 10px; color: #00d2ff; white-space: pre-line; margin-top: 4px;">${noteValue}</div>
-                    </div>`;
-                }
-            }
-
-            html += '</div>';
-            container.innerHTML = html;
+            await db.collection("schedule").doc(key).set(monthData);
+            scheduleBlinkActive = true;
+            renderMonthlySchedule();
+            alert("Месечният график е записан в облака успешно!");
         }
 
-        async function saveCalendarNote(dateKey, text) {
-            await db.collection("calendar").doc(dateKey).set({
-                note: text
-            }, { merge: true });
+        function renderMonthlySchedule() {
+            let titleEl = document.getElementById("schedule-month-title");
+            let thead = document.getElementById("schedule-thead");
+            let tbody = document.getElementById("schedule-tbody");
+            if (!titleEl || !thead || !tbody) return;
+
+            titleEl.innerText = `${bgMonths[scheduleMonth]} ${scheduleYear}`;
+
+            let daysInMonth = new Date(scheduleYear, scheduleMonth + 1, 0).getDate();
+            let today = new Date();
+            let isCurrentMonthAndYear = (today.getFullYear() === scheduleYear && today.getMonth() === scheduleMonth);
+            let todayDate = today.getDate();
+
+            let extraPeople = JSON.parse(localStorage.getItem("sys616_schedule_extra_people")) || [];
+            let headerHtml = `<tr><th class="col-names">Имена</th>`;
+            let dayMeta = [];
+
+            for (let d = 1; d <= daysInMonth; d++) {
+                let dateObj = new Date(scheduleYear, scheduleMonth, d);
+                let dayOfWeek = dateObj.getDay();
+                let isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+                let isHoliday = isBulgarianHoliday(scheduleYear, scheduleMonth, d);
+                let isToday = (isCurrentMonthAndYear && d === todayDate && scheduleBlinkActive);
+
+                let classes = [];
+                if (isHoliday) classes.push("col-holiday");
+                else if (isWeekend) classes.push("col-weekend");
+                if (isToday) classes.push("col-today-blink");
+
+                dayMeta[d] = classes.join(" ");
+
+                headerHtml += `
+                    <th class="${dayMeta[d]}">
+                        <span class="day-header-num">${d}</span>
+                        <span class="day-header-name">${bgWeekdaysShort[dayOfWeek]}</span>
+                    </th>
+                `;
+            }
+            headerHtml += `</tr>`;
+            thead.innerHTML = headerHtml;
+
+            let people = getSchedulePeople();
+            let key = getScheduleStorageKey();
+            let savedData = cloudSchedule[key] || {};
+            const options = ["", "1", "2", "3", "4", "5", "Д", "О"];
+            let isAdmin = loggedInUser && loggedInUser.role === 'admin';
+
+            let bodyHtml = "";
+            people.forEach(person => {
+                let isExtra = extraPeople.includes(person);
+                let removeBtn = (isAdmin && isExtra)
+                    ? `<button onclick="removeExtraSchedulePerson('${person.replace(/'/g, "\\'")}')" title="Премахни името" style="float:right; background:rgba(255,77,77,0.2); border:1px solid #ff4d4d; color:#ff4d4d; border-radius:4px; padding:0 5px; cursor:pointer; font-weight:bold; font-size:11px;">✕</button>`
+                    : "";
+
+                bodyHtml += `<tr><td class="col-names">${person} ${removeBtn}</td>`;
+
+                for (let d = 1; d <= daysInMonth; d++) {
+                    let currentVal = (savedData[person] && savedData[person][d]) ? savedData[person][d] : "";
+                    let valClass = currentVal ? `val-${currentVal}` : "";
+
+                    let optsHtml = options.map(opt => {
+                        let label = opt === "" ? "-" : opt;
+                        let selected = (opt === currentVal) ? "selected" : "";
+                        return `<option value="${opt}" ${selected}>${label}</option>`;
+                    }).join("");
+
+                    if (isAdmin) {
+                        bodyHtml += `
+                            <td class="${dayMeta[d]}">
+                                <select class="schedule-select ${valClass}"
+                                        data-person="${person}"
+                                        data-day="${d}"
+                                        onchange="onScheduleCellChange('${person.replace(/'/g, "\\'")}', ${d}, this)">
+                                    ${optsHtml}
+                                </select>
+                            </td>
+                        `;
+                    } else {
+                        bodyHtml += `
+                            <td class="${dayMeta[d]}" style="font-weight: bold;">
+                                <span style="display:inline-block; padding: 4px; font-size: 12px;" class="${valClass}">${currentVal || '-'}</span>
+                            </td>
+                        `;
+                    }
+                }
+                bodyHtml += `</tr>`;
+            });
+
+            tbody.innerHTML = bodyHtml;
         }
     </script>
 </body>
