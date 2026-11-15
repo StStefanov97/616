@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Система 616 — Портал</title>
+    <!-- Firebase SDK (Compat за директна работа в браузър) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -13,18 +16,18 @@
         }
 
         body {
-            height: 100vh;
+            min-height: 100vh;
             background-color: #090a0f;
-            overflow: hidden;
             display: flex;
             justify-content: center;
             align-items: center;
             color: #ffffff;
             position: relative;
+            overflow-x: hidden;
         }
 
         .moving-background {
-            position: absolute;
+            position: fixed;
             width: 200%;
             height: 200%;
             background: radial-gradient(circle at 30% 30%, rgba(0, 113, 227, 0.25), transparent 40%),
@@ -168,21 +171,21 @@
             min-height: 20px;
         }
 
-        /* ЕКРАН 2: DASHBOARD */
+        /* ЕКРАН 2: DASHBOARD (Гъвкав мобилен изглед) */
         #dashboard-screen {
             display: none;
             flex-direction: column;
             position: relative;
             z-index: 2;
-            width: 98%;
-            max-width: 1450px;
-            height: 94vh;
-            background: rgba(15, 18, 28, 0.92);
+            width: 100%;
+            max-width: 1250px;
+            min-height: 96vh;
+            background: rgba(15, 18, 28, 0.95);
             backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            border-radius: 16px;
-            padding: 15px;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+            border: none;
+            border-radius: 0;
+            padding: 12px;
+            box-shadow: none;
         }
 
         .dash-header {
@@ -197,64 +200,74 @@
         }
 
         .dash-title {
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 700;
             letter-spacing: 0.5px;
             color: #00d2ff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .live-dot {
+            width: 9px;
+            height: 9px;
+            background-color: #00ff88;
+            border-radius: 50%;
+            box-shadow: 0 0 8px #00ff88;
+            display: inline-block;
         }
 
         .user-panel-badge {
             background: rgba(0, 210, 255, 0.1);
             border: 1px solid rgba(0, 210, 255, 0.3);
             color: #00d2ff;
-            padding: 5px 10px;
+            padding: 5px 9px;
             border-radius: 6px;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 600;
-            margin-right: 8px;
         }
 
         .btn-notif {
             background: rgba(0, 210, 255, 0.15);
             border: 1px solid #00d2ff;
             color: #00d2ff;
-            padding: 5px 10px;
+            padding: 5px 9px;
             border-radius: 6px;
             cursor: pointer;
             font-weight: 600;
-            font-size: 12px;
-            margin-right: 8px;
+            font-size: 11px;
         }
 
         .btn-logout {
             background: rgba(255, 77, 77, 0.15);
             border: 1px solid #ff4d4d;
             color: #ff4d4d;
-            padding: 5px 10px;
+            padding: 5px 9px;
             border-radius: 6px;
             cursor: pointer;
             font-weight: 600;
-            font-size: 12px;
+            font-size: 11px;
         }
 
         .dash-body {
             display: flex;
             flex: 1;
             gap: 15px;
-            overflow: hidden;
             flex-direction: column;
         }
 
         @media(min-width: 768px) {
-            .dash-body {
-                flex-direction: row;
-            }
-            .dash-title {
-                font-size: 20px;
-            }
+            .dash-body { flex-direction: row; height: 82vh; overflow: hidden; }
+            .dash-title { font-size: 18px; }
             #dashboard-screen {
-                padding: 25px;
+                width: 98%;
+                min-height: auto;
                 height: 90vh;
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                border-radius: 16px;
+                padding: 22px;
+                box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
             }
         }
 
@@ -293,17 +306,10 @@
         }
 
         @media(min-width: 768px) {
-            .nav-btn {
-                text-align: left;
-                padding: 12px 16px;
-                font-size: 15px;
-            }
+            .nav-btn { text-align: left; padding: 12px 16px; font-size: 15px; }
         }
 
-        .nav-btn:hover {
-            background: rgba(255, 255, 255, 0.05);
-            color: #ffffff;
-        }
+        .nav-btn:hover { background: rgba(255, 255, 255, 0.05); color: #ffffff; }
 
         .nav-btn.active {
             background: linear-gradient(90deg, rgba(0, 113, 227, 0.3), rgba(0, 210, 255, 0.1));
@@ -318,32 +324,23 @@
             100% { background-color: rgba(255, 77, 77, 0.4); }
         }
 
-        .blinking-row {
-            animation: row-blink 1s infinite ease-in-out;
-        }
+        .blinking-row { animation: row-blink 1s infinite ease-in-out; }
 
         .main-content {
             flex: 1;
             background: rgba(0, 0, 0, 0.25);
             border: 1px solid rgba(255, 255, 255, 0.06);
             border-radius: 12px;
-            padding: 15px;
+            padding: 12px;
             overflow-y: auto;
         }
 
         @media(min-width: 768px) {
-            .main-content {
-                padding: 25px;
-            }
+            .main-content { padding: 20px; height: 100%; overflow-y: auto; }
         }
 
-        .page-section {
-            display: none;
-        }
-
-        .page-section.active {
-            display: block;
-        }
+        .page-section { display: none; }
+        .page-section.active { display: block; }
 
         .profile-grid {
             display: grid;
@@ -353,10 +350,7 @@
         }
 
         @media(min-width: 768px) {
-            .profile-grid {
-                grid-template-columns: 1fr 1fr;
-                gap: 16px;
-            }
+            .profile-grid { grid-template-columns: 1fr 1fr; gap: 16px; }
         }
 
         .field-label {
@@ -401,24 +395,16 @@
             width: 100%;
         }
 
-        @media(min-width: 768px) {
-            .btn-save {
-                width: auto;
-            }
-        }
+        @media(min-width: 768px) { .btn-save { width: auto; } }
 
         .upcoming-layout {
             display: flex;
             flex-direction: column;
             gap: 15px;
-            height: 100%;
         }
 
         @media(min-width: 768px) {
-            .upcoming-layout {
-                flex-direction: row;
-                gap: 20px;
-            }
+            .upcoming-layout { flex-direction: row; gap: 20px; height: 100%; }
         }
 
         .upcoming-sidebar {
@@ -456,17 +442,10 @@
         }
 
         @media(min-width: 768px) {
-            .upcoming-tab {
-                text-align: left;
-                font-size: 13px;
-                padding: 11px 14px;
-            }
+            .upcoming-tab { text-align: left; font-size: 13px; padding: 11px 14px; }
         }
 
-        .upcoming-tab:hover {
-            background: rgba(255, 255, 255, 0.07);
-            color: white;
-        }
+        .upcoming-tab:hover { background: rgba(255, 255, 255, 0.07); color: white; }
 
         .upcoming-tab.active {
             background: linear-gradient(90deg, rgba(0, 113, 227, 0.35), rgba(0, 210, 255, 0.15));
@@ -478,188 +457,57 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            overflow-y: auto;
         }
 
-        /* МЕСЕЧЕН ГРАФИК СТИЛОВЕ */
-        .schedule-header-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 12px;
-            margin-bottom: 16px;
-            padding: 14px 18px;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.09);
-            border-radius: 12px;
+        @media(min-width: 768px) {
+            .upcoming-content-panel { overflow-y: auto; height: 100%; padding-right: 5px; }
         }
 
-        .month-navigator {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .btn-month-nav {
-            background: rgba(0, 210, 255, 0.15);
-            border: 1px solid rgba(0, 210, 255, 0.4);
-            color: #00d2ff;
-            padding: 6px 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 700;
-            font-size: 14px;
-            transition: all 0.2s;
-        }
-
-        .btn-month-nav:hover {
-            background: rgba(0, 210, 255, 0.3);
-        }
-
-        .month-display-title {
-            font-size: 18px;
-            font-weight: 800;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            background: linear-gradient(90deg, #00d2ff, #ffffff);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            min-width: 190px;
-            text-align: center;
-        }
-
-        .schedule-table-wrapper {
-            width: 100%;
-            overflow-x: auto;
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            border-radius: 10px;
-            background: rgba(10, 12, 20, 0.6);
-        }
-
-        .schedule-table {
-            width: max-content;
-            min-width: 100%;
-            border-collapse: collapse;
-            font-size: 12px;
-        }
-
-        .schedule-table th, .schedule-table td {
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            text-align: center;
-            padding: 6px 4px;
-            min-width: 48px;
-        }
-
-        .schedule-table th.col-names,
-        .schedule-table td.col-names {
-            position: sticky;
-            left: 0;
-            z-index: 5;
-            min-width: 180px;
-            max-width: 200px;
-            text-align: left;
-            padding: 8px 12px;
-            background: #131826;
-            border-right: 2px solid rgba(0, 210, 255, 0.4);
-            font-weight: 600;
-            color: #ffffff;
-        }
-
-        .schedule-table th.col-names {
-            z-index: 6;
-            background: #0e1729;
-            color: #00d2ff;
-            font-size: 13px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .day-header-num {
-            font-size: 13px;
-            font-weight: 700;
-            display: block;
-        }
-
-        .day-header-name {
-            font-size: 10px;
-            opacity: 0.85;
-            display: block;
-            text-transform: uppercase;
-        }
-
-        .col-weekend {
-            background-color: rgba(148, 163, 184, 0.22) !important;
-            color: #cbd5e1;
-        }
-
-        @keyframes today-col-blink {
-            0% { background-color: rgba(0, 210, 255, 0.45); box-shadow: inset 0 0 12px rgba(0, 210, 255, 0.8); }
-            50% { background-color: rgba(0, 210, 255, 0.08); box-shadow: inset 0 0 2px rgba(0, 210, 255, 0.2); }
-            100% { background-color: rgba(0, 210, 255, 0.45); box-shadow: inset 0 0 12px rgba(0, 210, 255, 0.8); }
-        }
-
-        .col-today-blink {
-            animation: today-col-blink 1.1s infinite ease-in-out !important;
-            border-left: 2px solid #00d2ff !important;
-            border-right: 2px solid #00d2ff !important;
-        }
-
-        .schedule-select {
-            width: 44px;
-            padding: 4px 2px;
-            font-size: 12px;
-            font-weight: 700;
-            text-align: center;
-            background: rgba(0, 0, 0, 0.55);
-            border: 1px solid rgba(255, 255, 255, 0.18);
-            border-radius: 6px;
-            color: #ffffff;
-            cursor: pointer;
-            appearance: none;
-            -webkit-appearance: none;
-        }
-
-        .schedule-select:focus {
-            border-color: #00d2ff;
-            box-shadow: 0 0 8px rgba(0, 210, 255, 0.5);
-        }
-
-        .schedule-select option {
-            background: #121622;
-            color: #ffffff;
-            font-weight: 600;
-        }
-
-        .val-1 { background: rgba(0, 113, 227, 0.45); border-color: #38bdf8; color: #e0f2fe; }
-        .val-2 { background: rgba(16, 185, 129, 0.4); border-color: #34d399; color: #d1fae5; }
-        .val-3 { background: rgba(168, 85, 247, 0.45); border-color: #c084fc; color: #f3e8ff; }
-        .val-4 { background: rgba(245, 158, 11, 0.45); border-color: #fbbf24; color: #fef3c7; }
-        .val-5 { background: rgba(236, 72, 153, 0.45); border-color: #f472b6; color: #fce7f3; }
-        .val-Д { background: rgba(6, 182, 212, 0.45); border-color: #22d3ee; color: #cffafe; }
-        .val-О { background: rgba(239, 68, 68, 0.45); border-color: #f87171; color: #fee2e2; }
-
-        .schedule-legend {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            margin-top: 14px;
-            font-size: 12px;
-            color: #cbd5e1;
-            align-items: center;
-        }
-
-        .legend-item {
-            display: flex;
-            align-items: center;
+        /* Месечен график / Календар стилове */
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
             gap: 6px;
+            margin-top: 10px;
         }
-
-        .legend-box {
-            width: 14px;
-            height: 14px;
+        .cal-header-cell {
+            text-align: center;
+            font-size: 12px;
+            font-weight: bold;
+            color: #00d2ff;
+            padding: 6px;
+            background: rgba(0, 113, 227, 0.15);
+            border-radius: 6px;
+        }
+        .cal-cell {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            min-height: 75px;
+            padding: 6px;
+            font-size: 11px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .cal-cell.empty {
+            background: transparent;
+            border: none;
+        }
+        .cal-date-num {
+            font-weight: bold;
+            color: #d1d5db;
+        }
+        .cal-note-input {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.15);
             border-radius: 4px;
-            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            font-size: 10px;
+            padding: 3px;
+            width: 100%;
+            margin-top: 4px;
+            resize: none;
         }
     </style>
 </head>
@@ -691,8 +539,8 @@
     <!-- ЕКРАН 2: DASHBOARD -->
     <div id="dashboard-screen">
         <div class="dash-header">
-            <div class="dash-title">СИСТЕМА 616 // ОПЕРАТИВЕН ЦЕНТЪР</div>
-            <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 5px;">
+            <div class="dash-title"><span class="live-dot" title="Облачна синхронизация активна"></span> СИСТЕМА 616 // LIVE</div>
+            <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 6px;">
                 <button class="btn-notif" onclick="requestNotificationPermission()">🔔 Известия</button>
                 <span id="user-display-name" class="user-panel-badge"></span>
                 <button class="btn-logout" onclick="logout()">Изход</button>
@@ -705,7 +553,7 @@
             <div class="sidebar" id="sidebar-menu">
                 <button class="nav-btn active" onclick="openPage('requests', this)" id="menu-btn-requests">Заявки</button>
                 <button class="nav-btn" onclick="openPage('upcoming', this)" id="menu-btn-upcoming">Предстоящи</button>
-                <button class="nav-btn" onclick="openPage('schedule', this)" id="menu-btn-schedule">Месечен график</button>
+                <button class="nav-btn" onclick="openPage('calendar', this)" id="menu-btn-calendar">Месечен график</button>
                 <button class="nav-btn admin-only" onclick="openPage('users', this)" id="menu-btn-users" style="display: none;">Потребители</button>
             </div>
 
@@ -714,14 +562,14 @@
                 
                 <!-- ПОДСТРАНИЦА: ЗАЯВКИ -->
                 <div id="page-requests" class="page-section active">
-                    <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 10px;">
-                        <h3 style="margin-bottom: 0; font-size: 18px; color: #ffffff;">Оперативни заявки</h3>
-                        <button class="btn-save" onclick="manualRefreshRequests()" style="padding: 8px 14px; font-size: 13px; background: linear-gradient(90deg, #0071e3, #005bb5);">🔄 Рефреш / Провери за нови</button>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 10px; flex-wrap: wrap; gap: 10px;">
+                        <h3 style="margin-bottom: 0; font-size: 17px; color: #ffffff;">Оперативни заявки</h3>
+                        <span style="font-size: 11px; color: #00ff88;">● Облачна връзка</span>
                     </div>
                     
                     <!-- Форма за създаване (Само за администратор) -->
-                    <div id="admin-request-form" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); padding: 15px; border-radius: 12px; margin-bottom: 20px;">
-                        <h4 style="font-size: 14px; color: #00d2ff; margin-bottom: 12px;">Създаване на нова заявка</h4>
+                    <div id="admin-request-form" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); padding: 12px; border-radius: 12px; margin-bottom: 20px;">
+                        <h4 style="font-size: 13px; color: #00d2ff; margin-bottom: 10px;">Създаване на нова заявка</h4>
                         <div class="profile-grid">
                             <div>
                                 <label class="field-label">Име на обект</label>
@@ -753,7 +601,7 @@
                         <button class="btn-save" onclick="addRequest()">Публикувай заявка</button>
                     </div>
 
-                    <h4 style="font-size: 15px; color: #00d2ff; margin-bottom: 10px;">Регистрирани заявки</h4>
+                    <h4 style="font-size: 14px; color: #00d2ff; margin-bottom: 10px;">Регистрирани заявки</h4>
                     <div style="overflow-x: auto;">
                         <table class="clothing-table">
                             <thead>
@@ -766,14 +614,16 @@
                                     <th>Действие</th>
                                 </tr>
                             </thead>
-                            <tbody id="requests-tbody"></tbody>
+                            <tbody id="requests-tbody">
+                                <tr><td colspan="6" style="text-align: center; color: #9ca3af;">Зареждане от сървъра...</td></tr>
+                            </tbody>
                         </table>
                     </div>
                 </div>
 
                 <!-- ПОДСТРАНИЦА: ПРЕДСТОЯЩИ ЗАЯВКИ -->
                 <div id="page-upcoming" class="page-section">
-                    <h3 style="font-size: 18px; margin-bottom: 12px;">Предстоящи по маршрути</h3>
+                    <h3 style="font-size: 17px; margin-bottom: 12px;">Предстоящи по маршрути</h3>
                     <div class="upcoming-layout">
                         <div class="upcoming-sidebar">
                             <button class="upcoming-tab active" onclick="switchUpcomingRoute('route1', this)">Маршрут 1</button>
@@ -787,9 +637,9 @@
                         
                         <div class="upcoming-content-panel">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
-                                <h4 id="upcoming-route-title" style="color: #00d2ff; font-size: 15px;">Маршрут 1</h4>
+                                <h4 id="upcoming-route-title" style="color: #00d2ff; font-size: 14px;">Маршрут 1</h4>
                                 <div id="admin-upcoming-btn-box">
-                                    <button class="btn-save" onclick="openUpcomingModal()" style="padding: 7px 12px; font-size: 12px;">+ Добави план</button>
+                                    <button class="btn-save" onclick="openUpcomingModal()" style="padding: 6px 10px; font-size: 11px;">+ Добави план</button>
                                 </div>
                             </div>
                             <div id="upcoming-cards-container"></div>
@@ -798,42 +648,23 @@
                 </div>
 
                 <!-- ПОДСТРАНИЦА: МЕСЕЧЕН ГРАФИК -->
-                <div id="page-schedule" class="page-section">
-                    <div class="schedule-header-bar">
-                        <div class="month-navigator">
-                            <button class="btn-month-nav" onclick="changeScheduleMonth(-1)">◀</button>
-                            <div id="schedule-month-title" class="month-display-title">НОЕМВРИ 2026</div>
-                            <button class="btn-month-nav" onclick="changeScheduleMonth(1)">▶</button>
-                        </div>
-
-                        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-                            <div id="schedule-admin-controls" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-                                <input type="text" id="schedule-extra-person" placeholder="Име за добавяне..." style="padding: 7px 10px; font-size: 13px; width: 170px;">
-                                <button class="btn-save" onclick="addSchedulePerson()" style="padding: 7px 12px; font-size: 13px; background: rgba(0, 210, 255, 0.2); border: 1px solid #00d2ff;">+ Име</button>
-                                <button class="btn-save" onclick="saveMonthlySchedule()" style="padding: 7px 16px; font-size: 13px;">💾 Запиши графика</button>
-                            </div>
+                <div id="page-calendar" class="page-section">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+                        <h3 style="font-size: 17px; color: #ffffff;">Месечен график (Календар)</h3>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <button onclick="changeMonth(-1)" class="btn-save" style="padding: 5px 10px; font-size: 12px;">◀</button>
+                            <span id="calendar-month-title" style="color: #00d2ff; font-weight: bold; font-size: 14px;">Месец</span>
+                            <button onclick="changeMonth(1)" class="btn-save" style="padding: 5px 10px; font-size: 12px;">▶</button>
                         </div>
                     </div>
-
-                    <div class="schedule-table-wrapper">
-                        <table class="schedule-table" id="monthly-schedule-table">
-                            <thead id="schedule-thead"></thead>
-                            <tbody id="schedule-tbody"></tbody>
-                        </table>
-                    </div>
-
-                    <div class="schedule-legend">
-                        <div class="legend-item"><span class="legend-box" style="background: rgba(148, 163, 184, 0.35);"></span> Събота / Неделя</div>
-                        <div class="legend-item"><span class="legend-box" style="background: rgba(0, 210, 255, 0.45); border-color: #00d2ff;"></span> Днешна дата (Активен фокус)</div>
-                        <div class="legend-item"><strong>1–5:</strong> Маршрут | <strong>Д:</strong> Дежурен | <strong>О:</strong> Отпуск</div>
-                    </div>
+                    <div id="calendar-container"></div>
                 </div>
 
                 <!-- ПОДСТРАНИЦА: ПОТРЕБИТЕЛИ (Само за Админ) -->
                 <div id="page-users" class="page-section">
-                    <h3 style="font-size: 18px; margin-bottom: 12px;">Управление на потребители</h3>
+                    <h3 style="font-size: 17px; margin-bottom: 12px;">Управление на потребители</h3>
                     
-                    <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); padding: 15px; border-radius: 12px; margin-bottom: 20px;">
+                    <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); padding: 12px; border-radius: 12px; margin-bottom: 20px;">
                         <div class="profile-grid">
                             <div>
                                 <label class="field-label">Потребителско име</label>
@@ -854,7 +685,7 @@
                         <button class="btn-save" onclick="registerNewUser()">Създай потребител</button>
                     </div>
 
-                    <h4 style="font-size: 15px; color: #00d2ff; margin-bottom: 10px;">Активни потребители</h4>
+                    <h4 style="font-size: 14px; color: #00d2ff; margin-bottom: 10px;">Активни потребители</h4>
                     <div style="overflow-x: auto;">
                         <table class="clothing-table">
                             <thead>
@@ -873,10 +704,10 @@
         </div>
     </div>
 
-    <!-- МОДАЛЕН ПРОЗОРЕЦ -->
+    <!-- МОДАЛЕН ПРОЗОРЕЦ ЗА ПРЕДСТОЯЩИ -->
     <div id="upcoming-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); z-index: 100; justify-content: center; align-items: center; padding: 15px;">
         <div style="background: #121622; border: 1px solid rgba(255,255,255,0.15); width: 100%; max-width: 550px; max-height: 90vh; overflow-y: auto; padding: 20px; border-radius: 16px; box-shadow: 0 15px 40px rgba(0,0,0,0.8);">
-            <h3 id="modal-title" style="color: #00d2ff; font-size: 16px; margin-bottom: 12px;">План за дата</h3>
+            <h3 id="modal-title" style="color: #00d2ff; font-size: 15px; margin-bottom: 12px;">План за дата</h3>
             
             <div class="input-group">
                 <label class="field-label">Дата</label>
@@ -900,86 +731,102 @@
         </div>
     </div>
 
-    <!-- Firebase SDK (Modular v10) -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-        // Твоята Firebase конфигурация (заменете с вашите реални данни от Firebase Console)
+    <script>
+        // КОНФИГУРАЦИЯ НА FIREBASE
         const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_PROJECT_ID.appspot.com",
-            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-            appId: "YOUR_APP_ID"
+            apiKey: "AIzaSyDBgx0rCgBoppacVMVMp8g4SqaljLTxzk",
+            authDomain: "v-60185.firebaseapp.com",
+            projectId: "v-60185",
+            storageBucket: "v-60185.firebasestorage.app",
+            messagingSenderId: "74712178843",
+            appId: "1:74712178843:web:11a6bbb2af09efe191a63e"
         };
 
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        window.db = db;
-        window.FirestoreAPI = { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, setDoc, onSnapshot };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
 
-        // Стартиране на слушатели за реално време след инициализация
-        window.initFirebaseRealtimeListeners();
-    </script>
-
-    <script>
         let loggedInUser = null;
         let currentUpcomingKey = "route1";
         let currentUpcomingTitle = "Маршрут 1";
-        let editingIndex = null;
-        let lastKnownRequestCount = 0;
+        let editingDocId = null;
 
-        let currentScheduleMonth = new Date().getMonth();
-        let currentScheduleYear = new Date().getFullYear();
-        const monthNames = ["Януари", "Февруари", "Март", "Април", "Май", "Юни", "Юли", "Август", "Септември", "Октомври", "Ноември", "Декември"];
+        let cloudRequests = [];
+        let cloudUsers = [];
+        let cloudUpcoming = [];
+        let cloudCalendar = {};
+        let initialRequestsLoaded = false;
 
-        window.onload = function() {
-            renderMonthlySchedule();
-        };
+        let currentCalendarDate = new Date();
 
-        window.initFirebaseRealtimeListeners = function() {
-            if (!window.db) return;
-            const { collection, onSnapshot } = window.FirestoreAPI;
+        async function ensureDefaultUsers() {
+            const snap = await db.collection("users").get();
+            if (snap.empty) {
+                await db.collection("users").doc("admin").set({ username: "admin", pass: "616", role: "admin" });
+                await db.collection("users").doc("operator").set({ username: "operator", pass: "1234", role: "operator" });
+            }
+        }
 
-            // Слушател за заявки в реално време
-            onSnapshot(collection(window.db, "requests"), (snapshot) => {
-                let requests = [];
-                snapshot.forEach(docSnap => {
-                    requests.push({ id: docSnap.id, ...docSnap.data() });
-                });
-                // Сортиране по дата или ID ако е нужно
-                renderRequestsData(requests);
+        function startCloudListeners() {
+            db.collection("users").onSnapshot(snapshot => {
+                cloudUsers = [];
+                snapshot.forEach(doc => cloudUsers.push({ id: doc.id, ...doc.data() }));
+                renderUsersTable();
             });
 
-            // Слушател за потребители в реално време
-            onSnapshot(collection(window.db, "users"), (snapshot) => {
-                let users = [];
-                snapshot.forEach(docSnap => {
-                    users.push(docSnap.data());
+            db.collection("requests").orderBy("timestamp", "desc").onSnapshot(snapshot => {
+                let newReqAdded = false;
+                let latestReq = null;
+
+                snapshot.docChanges().forEach(change => {
+                    if (change.type === "added" && initialRequestsLoaded) {
+                        newReqAdded = true;
+                        latestReq = change.doc.data();
+                    }
                 });
-                if (users.length === 0) {
-                    // Създаване на дефолтен админ при празна база
-                    window.FirestoreAPI.setDoc(window.FirestoreAPI.doc(window.db, "users", "admin"), { username: "admin", pass: "616", role: "admin" });
-                    window.FirestoreAPI.setDoc(window.FirestoreAPI.doc(window.db, "users", "operator"), { username: "operator", pass: "1234", role: "operator" });
-                } else {
-                    renderUsersTableData(users);
+
+                cloudRequests = [];
+                snapshot.forEach(doc => cloudRequests.push({ docId: doc.id, ...doc.data() }));
+                initialRequestsLoaded = true;
+
+                renderRequests();
+
+                if (newReqAdded && latestReq && loggedInUser && loggedInUser.role === 'operator') {
+                    playAlarmSound();
+                    triggerBrowserNotification("Нова заявка: " + latestReq.location, latestReq.type + " - " + latestReq.comment);
                 }
             });
+
+            db.collection("upcoming").orderBy("timestamp", "desc").onSnapshot(snapshot => {
+                cloudUpcoming = [];
+                snapshot.forEach(doc => cloudUpcoming.push({ docId: doc.id, ...doc.data() }));
+                renderUpcomingCards();
+            });
+
+            db.collection("calendar").onSnapshot(snapshot => {
+                cloudCalendar = {};
+                snapshot.forEach(doc => {
+                    cloudCalendar[doc.id] = doc.data().note || "";
+                });
+                renderCalendar();
+            });
+        }
+
+        window.onload = async function() {
+            await ensureDefaultUsers();
+            startCloudListeners();
         };
 
         function requestNotificationPermission() {
             if (!("Notification" in window)) {
-                alert("Този браузър не поддържа известия.");
+                alert("Този браузър не поддържа системни известия.");
                 return;
             }
             Notification.requestPermission().then(permission => {
                 if (permission === "granted") {
                     alert("Известията са разрешени успешно!");
-                    new Notification("Система 616", { body: "Известията са активни!" });
+                    new Notification("Система 616", { body: "Известията в реално време са активни!" });
                 } else {
-                    alert("Известията бяха отказани.");
+                    alert("Известията бяха отказани от настройките.");
                 }
             });
         }
@@ -992,43 +839,31 @@
             }
         }
 
-        async function checkLogin() {
+        function checkLogin() {
             let user = document.getElementById("username").value.trim();
             let pass = document.getElementById("password").value;
             let feedback = document.getElementById("feedback");
 
-            if (!window.db) {
+            let list = cloudUsers.length > 0 ? cloudUsers : [
+                { username: "admin", pass: "616", role: "admin" },
+                { username: "operator", pass: "1234", role: "operator" }
+            ];
+
+            let found = list.find(u => u.username === user && u.pass === pass);
+
+            if (found) {
+                feedback.innerText = "";
+                loggedInUser = found;
+
+                document.getElementById("login-screen").style.display = "none";
+                document.getElementById("dashboard-screen").style.display = "flex";
+                
+                document.getElementById("user-display-name").innerText = found.username + " (" + (found.role === 'admin' ? 'Админ' : 'Оператор') + ")";
+
+                applyRolePermissions(found.role);
+            } else {
                 feedback.style.color = "#ff4d4d";
-                feedback.innerText = "Няма връзка с Firebase!";
-                return;
-            }
-
-            try {
-                const querySnapshot = await window.FirestoreAPI.getDocs(window.FirestoreAPI.collection(window.db, "users"));
-                let found = null;
-                querySnapshot.forEach(docSnap => {
-                    let u = docSnap.data();
-                    if (u.username === user && u.pass === pass) {
-                        found = u;
-                    }
-                });
-
-                if (found) {
-                    feedback.innerText = "";
-                    loggedInUser = found;
-
-                    document.getElementById("login-screen").style.display = "none";
-                    document.getElementById("dashboard-screen").style.display = "flex";
-                    document.getElementById("user-display-name").innerText = found.username + " (" + (found.role === 'admin' ? 'Админ' : 'Оператор') + ")";
-
-                    applyRolePermissions(found.role);
-                } else {
-                    feedback.style.color = "#ff4d4d";
-                    feedback.innerText = "Грешно име или парола!";
-                }
-            } catch (err) {
-                feedback.style.color = "#ff4d4d";
-                feedback.innerText = "Грешка при вход към базата данни.";
+                feedback.innerText = "Грешно име или парола!";
             }
         }
 
@@ -1036,28 +871,25 @@
             let adminReqForm = document.getElementById("admin-request-form");
             let adminUpcomingBtnBox = document.getElementById("admin-upcoming-btn-box");
             let menuUsers = document.getElementById("menu-btn-users");
-            let scheduleAdminControls = document.getElementById("schedule-admin-controls");
 
             if (role === "operator") {
                 if (adminReqForm) adminReqForm.style.display = "none";
                 if (adminUpcomingBtnBox) adminUpcomingBtnBox.style.display = "none";
                 if (menuUsers) menuUsers.style.display = "none";
-                if (scheduleAdminControls) scheduleAdminControls.style.display = "none";
             } else {
                 if (adminReqForm) adminReqForm.style.display = "block";
                 if (adminUpcomingBtnBox) adminUpcomingBtnBox.style.display = "block";
                 if (menuUsers) menuUsers.style.display = "block";
-                if (scheduleAdminControls) scheduleAdminControls.style.display = "flex";
             }
             openPage('requests', document.getElementById('menu-btn-requests'));
+            renderRequests();
             renderUpcomingCards();
-            renderMonthlySchedule();
+            renderCalendar();
+            renderUsersTable();
         }
 
         function handleEnter(event) {
-            if (event.key === "Enter") {
-                checkLogin();
-            }
+            if (event.key === "Enter") checkLogin();
         }
 
         function logout() {
@@ -1068,24 +900,15 @@
         }
 
         function openPage(pageName, clickedButton) {
-            let allPages = document.querySelectorAll(".page-section");
-            allPages.forEach(page => page.classList.remove("active"));
-
-            let allButtons = document.querySelectorAll(".nav-btn");
-            allButtons.forEach(btn => btn.classList.remove("active"));
+            document.querySelectorAll(".page-section").forEach(page => page.classList.remove("active"));
+            document.querySelectorAll(".nav-btn").forEach(btn => btn.classList.remove("active"));
 
             document.getElementById("page-" + pageName).classList.add("active");
             if (clickedButton) clickedButton.classList.add("active");
 
-            if (pageName === 'upcoming') {
-                renderUpcomingCards();
-            } else if (pageName === 'schedule') {
-                renderMonthlySchedule();
+            if (pageName === 'calendar') {
+                renderCalendar();
             }
-        }
-
-        function manualRefreshRequests() {
-            alert("Данните се синхронизират автоматично в реално време чрез Firebase!");
         }
 
         function playAlarmSound() {
@@ -1117,146 +940,145 @@
             let urole = document.getElementById("new-user-role").value;
 
             if (!uname || !upass) {
-                alert("Попълнете име и парола!");
+                alert("Въведете потребител и парола!");
                 return;
             }
 
-            try {
-                await window.FirestoreAPI.setDoc(window.FirestoreAPI.doc(window.db, "users", uname), {
-                    username: uname,
-                    pass: upass,
-                    role: urole
-                });
-                document.getElementById("new-user-name").value = "";
-                document.getElementById("new-user-pass").value = "";
-                alert("Успешно създаден потребител във Firebase!");
-            } catch (err) {
-                alert("Грешка при създаване на потребител.");
+            if (cloudUsers.some(u => u.username === uname)) {
+                alert("Потребителят вече съществува!");
+                return;
             }
+
+            await db.collection("users").doc(uname).set({
+                username: uname,
+                pass: upass,
+                role: urole
+            });
+
+            document.getElementById("new-user-name").value = "";
+            document.getElementById("new-user-pass").value = "";
+            alert("Потребителят е създаден в облака!");
         }
 
-        function renderUsersTableData(users) {
+        function renderUsersTable() {
             let tbody = document.getElementById("users-tbody");
             if (!tbody) return;
             tbody.innerHTML = "";
 
-            users.forEach((u) => {
+            cloudUsers.forEach(u => {
                 let tr = document.createElement("tr");
-                tr.innerHTML = `
-                    <td><strong>${u.username}</strong></td>
-                    <td>${u.role === 'admin' ? 'Администратор' : 'Оператор'}</td>
-                    <td>${u.username !== 'admin' ? `<button onclick="deleteUser('${u.username}')" style="background:rgba(255,77,77,0.2); border:1px solid #ff4d4d; color:#ff4d4d; padding:4px 8px; border-radius:4px; cursor:pointer;">Изтрий</button>` : '-'}</td>
-                `;
+                let roleBadge = u.role === 'admin' ? '<span style="color: #00d2ff; font-weight: bold;">Админ</span>' : '<span style="color: #9ca3af;">Оператор</span>';
+                let deleteBtn = u.username === 'admin' ? '<span style="color: #555; font-size: 11px;">Защитен</span>' : `<button onclick="deleteUser('${u.username}')" style="background: rgba(255,77,77,0.15); border: 1px solid #ff4d4d; color: #ff4d4d; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px;">Изтрий</button>`;
+
+                tr.innerHTML = `<td><b>${u.username}</b></td><td>${roleBadge}</td><td>${deleteBtn}</td>`;
                 tbody.appendChild(tr);
             });
         }
 
         async function deleteUser(username) {
-            if (!confirm("Сигурни ли сте, че искате да изтриете този потребител?")) return;
-            try {
-                await window.FirestoreAPI.deleteDoc(window.FirestoreAPI.doc(window.db, "users", username));
-            } catch (err) {
-                alert("Грешка при изтриване.");
+            if (confirm("Изтриване на потребител " + username + "?")) {
+                await db.collection("users").doc(username).delete();
             }
-        }
-
-        function renderRequestsData(requests) {
-            let tbody = document.getElementById("requests-tbody");
-            if (!tbody) return;
-
-            if (requests.length > lastKnownRequestCount && lastKnownRequestCount > 0) {
-                playAlarmSound();
-                triggerBrowserNotification("Нова заявка в Система 616", "Влязла е нова оперативна заявка.");
-            }
-            lastKnownRequestCount = requests.length;
-
-            tbody.innerHTML = "";
-            if (requests.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #9ca3af;">Няма налични заявки.</td></tr>`;
-                return;
-            }
-
-            requests.forEach((req) => {
-                let tr = document.createElement("tr");
-                if (req.emergency) {
-                    tr.classList.add("blinking-row");
-                }
-                tr.innerHTML = `
-                    <td>${req.date}</td>
-                    <td><strong>${req.location}</strong></td>
-                    <td>${req.type}</td>
-                    <td><span style="color:${req.status === 'Активна' ? '#00d2ff' : '#34d399'}">${req.status}</span></td>
-                    <td>${req.comment || '-'}</td>
-                    <td>
-                        <button onclick="toggleStatus('${req.id}', '${req.status}')" style="background:rgba(0,210,255,0.2); border:1px solid #00d2ff; color:#00d2ff; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:11px;">Статус</button>
-                        ${loggedInUser && loggedInUser.role === 'admin' ? `<button onclick="deleteRequest('${req.id}')" style="background:rgba(255,77,77,0.2); border:1px solid #ff4d4d; color:#ff4d4d; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:11px; margin-left:5px;">Изтрий</button>` : ''}
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
         }
 
         async function addRequest() {
-            let loc = document.getElementById("req-location").value.trim();
+            let location = document.getElementById("req-location").value;
             let type = document.getElementById("req-type").value;
             let emergency = document.getElementById("req-emergency").checked;
-            let comment = document.getElementById("req-comment").value.trim();
+            let comment = document.getElementById("req-comment").value;
 
-            if (!loc) {
-                alert("Моля, въведете име на обект!");
+            if (!location) {
+                alert("Въведете обект!");
                 return;
             }
 
             let now = new Date();
-            let dateStr = now.toLocaleDateString() + " " + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            let dateTimeStr = now.toLocaleDateString("bg-BG") + " " + now.toLocaleTimeString("bg-BG", {hour: '2-digit', minute:'2-digit'});
 
-            try {
-                await window.FirestoreAPI.addDoc(window.FirestoreAPI.collection(window.db, "requests"), {
-                    date: dateStr,
-                    location: loc,
-                    type: type,
-                    status: "Активна",
-                    emergency: emergency,
-                    comment: comment,
-                    timestamp: Date.now()
-                });
+            await db.collection("requests").add({
+                timestamp: Date.now(),
+                dateTime: dateTimeStr,
+                location: location,
+                type: type,
+                emergency: emergency,
+                comment: comment || "Няма коментар",
+                readBy: []
+            });
 
-                document.getElementById("req-location").value = "";
-                document.getElementById("req-comment").value = "";
-                document.getElementById("req-emergency").checked = false;
+            document.getElementById("req-location").value = "";
+            document.getElementById("req-comment").value = "";
+            document.getElementById("req-emergency").checked = false;
+        }
+
+        function renderRequests() {
+            let tbody = document.getElementById("requests-tbody");
+            if (!tbody) return;
+            tbody.innerHTML = "";
+
+            if (cloudRequests.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #9ca3af;">Няма активни заявки.</td></tr>`;
+                return;
+            }
+
+            let hasUnreadForCurrentUser = false;
+
+            cloudRequests.forEach(req => {
+                let tr = document.createElement("tr");
+                let isReadByMe = loggedInUser && loggedInUser.role === 'operator' && req.readBy && req.readBy.includes(loggedInUser.username);
+
+                if (loggedInUser && loggedInUser.role === 'operator' && !isReadByMe) {
+                    tr.classList.add("blinking-row");
+                    hasUnreadForCurrentUser = true;
+                }
+
+                let statusBadge = req.emergency ? `<span style="color: #ff4d4d; font-weight: bold; background: rgba(255,77,77,0.15); padding: 2px 6px; border-radius: 4px;">ИЗВЪНРЕДНА</span>` : `<span style="color: #00ff88;">Нормална</span>`;
+                let readInfo = (req.readBy && req.readBy.length > 0) ? `<br><span style="font-size:10px; color:#00ff88;">Видяно от: ${req.readBy.join(", ")}</span>` : "";
+
+                let actionCell = loggedInUser && loggedInUser.role === 'admin' 
+                    ? `<td><button onclick="deleteRequest('${req.docId}')" style="background: rgba(255,77,77,0.15); border: 1px solid #ff4d4d; color: #ff4d4d; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px;">Изтрий</button></td>`
+                    : (!isReadByMe ? `<td><button onclick="markRequestAsRead('${req.docId}')" style="background: rgba(0,210,255,0.2); border: 1px solid #00d2ff; color: #00d2ff; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600;">Прочетено</button></td>` : `<td><span style="color: #00ff88; font-size: 12px;">✓ Потвърдено</span></td>`);
+
+                tr.innerHTML = `
+                    <td style="white-space: nowrap; color: #d1d5db;">${req.dateTime}</td>
+                    <td><b>${req.location}</b></td>
+                    <td>${req.type}</td>
+                    <td>${statusBadge}</td>
+                    <td style="color: #9ca3af;">${req.comment}${readInfo}</td>
+                    ${actionCell}
+                `;
+                tbody.appendChild(tr);
+            });
+
+            if (loggedInUser && loggedInUser.role === 'operator' && hasUnreadForCurrentUser) {
                 playAlarmSound();
-                triggerBrowserNotification("Нова заявка създадена", loc);
-            } catch (err) {
-                alert("Грешка при запис в базата данни.");
             }
         }
 
-        async function toggleStatus(id, currentStatus) {
-            let newStatus = currentStatus === "Активна" ? "Изпълнена" : "Активна";
-            try {
-                await window.FirestoreAPI.updateDoc(window.FirestoreAPI.doc(window.db, "requests", id), {
-                    status: newStatus
-                });
-            } catch (err) {
-                alert("Грешка при обновяване на статуса.");
+        async function markRequestAsRead(docId) {
+            if (!loggedInUser) return;
+            let req = cloudRequests.find(r => r.docId === docId);
+            if (req) {
+                let updatedReadBy = req.readBy ? [...req.readBy] : [];
+                if (!updatedReadBy.includes(loggedInUser.username)) {
+                    updatedReadBy.push(loggedInUser.username);
+                    await db.collection("requests").doc(docId).update({ readBy: updatedReadBy });
+                }
             }
         }
 
-        async function deleteRequest(id) {
-            try {
-                await window.FirestoreAPI.deleteDoc(window.FirestoreAPI.doc(window.db, "requests", id));
-            } catch (err) {
-                alert("Грешка при изтриване.");
+        async function deleteRequest(docId) {
+            if (confirm("Изтриване на заявката?")) {
+                await db.collection("requests").doc(docId).delete();
             }
         }
 
-        function switchUpcomingRoute(routeKey, btn) {
+        function switchUpcomingRoute(routeKey, tabButton) {
             currentUpcomingKey = routeKey;
-            currentUpcomingTitle = btn.innerText;
-
-            document.querySelectorAll(".upcoming-tab").forEach(tab => tab.classList.remove("active"));
-            btn.classList.add("active");
+            currentUpcomingTitle = tabButton.innerText;
             document.getElementById("upcoming-route-title").innerText = currentUpcomingTitle;
+
+            document.querySelectorAll(".upcoming-tab").forEach(t => t.classList.remove("active"));
+            tabButton.classList.add("active");
 
             renderUpcomingCards();
         }
@@ -1266,57 +1088,62 @@
             if (!container) return;
             container.innerHTML = "";
 
-            let allData = JSON.parse(localStorage.getItem("sys616_upcoming_plans")) || {};
-            let routeRecords = allData[currentUpcomingKey] || [];
+            let records = cloudUpcoming.filter(item => item.routeKey === currentUpcomingKey);
+            let isAdmin = loggedInUser && loggedInUser.role === 'admin';
 
-            if (routeRecords.length === 0) {
-                container.innerHTML = `<div style="color: #9ca3af; font-size: 13px;">Няма записани планове за ${currentUpcomingTitle}.</div>`;
+            if (records.length === 0) {
+                container.innerHTML = `<p style="color: #9ca3af; text-align: center; padding: 20px; font-size: 13px;">Няма планове за ${currentUpcomingTitle}.</p>`;
                 return;
             }
 
-            routeRecords.forEach((rec, idx) => {
+            records.forEach(rec => {
                 let card = document.createElement("div");
-                card.style.cssText = "background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 12px; margin-bottom: 10px;";
+                card.style.cssText = "background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 12px; margin-bottom: 12px;";
+
+                let adminActions = isAdmin ? `
+                    <div style="display: flex; gap: 6px;">
+                        <button onclick="openUpcomingModal('${rec.docId}')" style="background: rgba(0,210,255,0.15); border: 1px solid #00d2ff; color: #00d2ff; padding: 3px 8px; border-radius: 4px; cursor: pointer; font-size: 11px;">Ред.</button>
+                        <button onclick="deleteUpcomingRecord('${rec.docId}')" style="background: rgba(255,77,77,0.15); border: 1px solid #ff4d4d; color: #ff4d4d; padding: 3px 8px; border-radius: 4px; cursor: pointer; font-size: 11px;">Изтр.</button>
+                    </div>
+                ` : '';
+
                 card.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                        <strong style="color: #00d2ff; font-size: 14px;">📅 ${rec.date}</strong>
-                        ${loggedInUser && loggedInUser.role === 'admin' ? `<div>
-                            <button onclick="editUpcomingRecord(${idx})" style="background:none; border:none; color:#00d2ff; cursor:pointer; font-size:12px; margin-right:8px;">Редактирай</button>
-                            <button onclick="deleteUpcomingRecord(${idx})" style="background:none; border:none; color:#ff4d4d; cursor:pointer; font-size:12px;">Изтрий</button>
-                        </div>` : ''}
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 8px; margin-bottom: 10px;">
+                        <span style="color: #00d2ff; font-weight: bold; font-size: 13px;">📅 ${rec.date || 'Без дата'}</span>
+                        ${adminActions}
                     </div>
-                    <div style="font-size: 12px; color: #d1d5db; display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
-                        <div><strong>ОББ:</strong> ${rec.obb || '-'}</div>
-                        <div><strong>БПБ:</strong> ${rec.bpb || '-'}</div>
-                        <div><strong>АББ:</strong> ${rec.abb || '-'}</div>
-                        <div><strong>ЮРОНЕТ:</strong> ${rec.euronet || '-'}</div>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+                        <div style="background: rgba(0,0,0,0.3); padding: 8px; border-radius: 6px;"><span style="color: #9ca3af; font-size: 10px; display: block; font-weight: bold;">ОББ</span><div style="font-size: 12px; white-space: pre-line;">${rec.obb || '-'}</div></div>
+                        <div style="background: rgba(0,0,0,0.3); padding: 8px; border-radius: 6px;"><span style="color: #9ca3af; font-size: 10px; display: block; font-weight: bold;">БПБ</span><div style="font-size: 12px; white-space: pre-line;">${rec.bpb || '-'}</div></div>
+                        <div style="background: rgba(0,0,0,0.3); padding: 8px; border-radius: 6px;"><span style="color: #9ca3af; font-size: 10px; display: block; font-weight: bold;">АББ</span><div style="font-size: 12px; white-space: pre-line;">${rec.abb || '-'}</div></div>
+                        <div style="background: rgba(0,0,0,0.3); padding: 8px; border-radius: 6px;"><span style="color: #9ca3af; font-size: 10px; display: block; font-weight: bold;">ЮРОНЕТ</span><div style="font-size: 12px; white-space: pre-line;">${rec.euronet || '-'}</div></div>
                     </div>
-                    <div style="font-size: 12px; color: #d1d5db; margin-top: 6px;"><strong>КЛИЕНТИ:</strong> ${rec.clients || '-'}</div>
-                    <div style="font-size: 12px; color: #9ca3af; margin-top: 4px;"><strong>ИНФОРМАЦИЯ:</strong> ${rec.info || '-'}</div>
+                    <div style="background: rgba(0,0,0,0.3); padding: 8px; border-radius: 6px; margin-top: 8px;"><span style="color: #9ca3af; font-size: 10px; display: block; font-weight: bold;">КЛИЕНТИ</span><div style="font-size: 12px; white-space: pre-line;">${rec.clients || '-'}</div></div>
+                    <div style="background: rgba(0,0,0,0.3); padding: 8px; border-radius: 6px; margin-top: 8px;"><span style="color: #9ca3af; font-size: 10px; display: block; font-weight: bold;">ИНФОРМАЦИЯ</span><div style="font-size: 12px; white-space: pre-line; color: #d1d5db;">${rec.info || '-'}</div></div>
                 `;
                 container.appendChild(card);
             });
         }
 
-        function openUpcomingModal(editIdx = null) {
-            editingIndex = editIdx;
+        function openUpcomingModal(docId = null) {
+            editingDocId = docId;
             let modal = document.getElementById("upcoming-modal");
-            let titleEl = document.getElementById("modal-title");
+            let title = document.getElementById("modal-title");
 
-            if (editIdx !== null) {
-                titleEl.innerText = "Редактиране на план (" + currentUpcomingTitle + ")";
-                let allData = JSON.parse(localStorage.getItem("sys616_upcoming_plans")) || {};
-                let rec = allData[currentUpcomingKey][editIdx];
-
-                document.getElementById("modal-date").value = rec.date || "";
-                document.getElementById("modal-obb").value = rec.obb || "";
-                document.getElementById("modal-bpb").value = rec.bpb || "";
-                document.getElementById("modal-abb").value = rec.abb || "";
-                document.getElementById("modal-euronet").value = rec.euronet || "";
-                document.getElementById("modal-clients").value = rec.clients || "";
-                document.getElementById("modal-info").value = rec.info || "";
+            if (docId) {
+                title.innerText = "Редактиране на план";
+                let rec = cloudUpcoming.find(r => r.docId === docId);
+                if (rec) {
+                    document.getElementById("modal-date").value = rec.date || "";
+                    document.getElementById("modal-obb").value = rec.obb || "";
+                    document.getElementById("modal-bpb").value = rec.bpb || "";
+                    document.getElementById("modal-abb").value = rec.abb || "";
+                    document.getElementById("modal-euronet").value = rec.euronet || "";
+                    document.getElementById("modal-clients").value = rec.clients || "";
+                    document.getElementById("modal-info").value = rec.info || "";
+                }
             } else {
-                titleEl.innerText = "Нов план за " + currentUpcomingTitle;
+                title.innerText = "Добавяне на план";
                 document.getElementById("modal-date").value = "";
                 document.getElementById("modal-obb").value = "";
                 document.getElementById("modal-bpb").value = "";
@@ -1325,196 +1152,109 @@
                 document.getElementById("modal-clients").value = "";
                 document.getElementById("modal-info").value = "";
             }
-
             modal.style.display = "flex";
         }
 
         function closeUpcomingModal() {
             document.getElementById("upcoming-modal").style.display = "none";
-            editingIndex = null;
+            editingDocId = null;
         }
 
-        function saveUpcomingRecord() {
+        async function saveUpcomingRecord() {
             let date = document.getElementById("modal-date").value.trim();
             if (!date) {
-                alert("Моля, въведете дата!");
+                alert("Въведете дата!");
                 return;
             }
 
-            let newRecord = {
+            let recordData = {
+                routeKey: currentUpcomingKey,
+                timestamp: Date.now(),
                 date: date,
-                obb: document.getElementById("modal-obb").value.trim(),
-                bpb: document.getElementById("modal-bpb").value.trim(),
-                abb: document.getElementById("modal-abb").value.trim(),
-                euronet: document.getElementById("modal-euronet").value.trim(),
-                clients: document.getElementById("modal-clients").value.trim(),
-                info: document.getElementById("modal-info").value.trim()
+                obb: document.getElementById("modal-obb").value,
+                bpb: document.getElementById("modal-bpb").value,
+                abb: document.getElementById("modal-abb").value,
+                euronet: document.getElementById("modal-euronet").value,
+                clients: document.getElementById("modal-clients").value,
+                info: document.getElementById("modal-info").value
             };
 
-            let allData = JSON.parse(localStorage.getItem("sys616_upcoming_plans")) || {};
-            if (!allData[currentUpcomingKey]) {
-                allData[currentUpcomingKey] = [];
-            }
-
-            if (editingIndex !== null) {
-                allData[currentUpcomingKey][editingIndex] = newRecord;
+            if (editingDocId) {
+                await db.collection("upcoming").doc(editingDocId).update(recordData);
             } else {
-                allData[currentUpcomingKey].unshift(newRecord);
+                await db.collection("upcoming").add(recordData);
             }
 
-            localStorage.setItem("sys616_upcoming_plans", JSON.stringify(allData));
             closeUpcomingModal();
-            renderUpcomingCards();
         }
 
-        function editUpcomingRecord(idx) {
-            openUpcomingModal(idx);
-        }
-
-        function deleteUpcomingRecord(idx) {
-            if (!confirm("Сигурни ли сте, че искате да изтриете този запис?")) return;
-            let allData = JSON.parse(localStorage.getItem("sys616_upcoming_plans")) || {};
-            if (allData[currentUpcomingKey]) {
-                allData[currentUpcomingKey].splice(idx, 1);
-                localStorage.setItem("sys616_upcoming_plans", JSON.stringify(allData));
-                renderUpcomingCards();
+        async function deleteUpcomingRecord(docId) {
+            if (confirm("Сигурни ли сте, че искате да изтриете този план?")) {
+                await db.collection("upcoming").doc(docId).delete();
             }
         }
 
-        /* ===== МЕСЕЧЕН ГРАФИК ===== */
-        function renderMonthlySchedule() {
-            document.getElementById("schedule-month-title").innerText = `${monthNames[currentScheduleMonth]} ${currentScheduleYear}`;
-            let thead = document.getElementById("schedule-thead");
-            let tbody = document.getElementById("schedule-tbody");
-            if (!thead || !tbody) return;
-
-            let daysInMonth = new Date(currentScheduleYear, currentScheduleMonth + 1, 0).getDate();
-            let today = new Date();
-            let isCurrentMonthYear = today.getMonth() === currentScheduleMonth && today.getFullYear() === currentScheduleYear;
-            let todayDateNum = today.getDate();
-
-            let headerTr1 = `<tr><th class="col-names">Служител / Дата</th>`;
-            let headerTr2 = `<tr><th class="col-names">Ден от седмицата</th>`;
-
-            for (let d = 1; d <= daysInMonth; d++) {
-                let dateObj = new Date(currentScheduleYear, currentScheduleMonth, d);
-                let dayOfWeek = dateObj.getDay();
-                let cls = '';
-                if (dayOfWeek === 0 || dayOfWeek === 6) cls = 'col-weekend';
-                if (isCurrentMonthYear && d === todayDateNum) cls += ' col-today-blink';
-
-                let dayNameShort = ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'][dayOfWeek];
-
-                headerTr1 += `<th class="${cls}"><span class="day-header-num">${d}</span></th>`;
-                headerTr2 += `<th class="${cls}"><span class="day-header-name">${dayNameShort}</span></th>`;
-            }
-            headerTr1 += `</tr>`;
-            headerTr2 += `</tr>`;
-            thead.innerHTML = headerTr1 + headerTr2;
-
-            let staff = JSON.parse(localStorage.getItem("sys616_schedule_staff")) || ["Иван Сукоров", "Риза Мустафа"];
-            let savedData = JSON.parse(localStorage.getItem(`sys616_schedule_${currentScheduleYear}_${currentScheduleMonth}`)) || {};
-            
-            tbody.innerHTML = "";
-
-            staff.forEach((person, pIndex) => {
-                let tr = document.createElement("tr");
-                let nameTd = document.createElement("td");
-                nameTd.className = "col-names";
-                nameTd.style.display = "flex";
-                nameTd.style.justifyContent = "space-between";
-                nameTd.style.alignItems = "center";
-                nameTd.innerHTML = `<span>${person}</span>`;
-                
-                if (loggedInUser && loggedInUser.role === 'admin') {
-                    let delBtn = document.createElement("button");
-                    delBtn.innerHTML = "✕";
-                    delBtn.style.cssText = "background:none; border:none; color:#ff4d4d; cursor:pointer; font-size:12px; font-weight:bold;";
-                    delBtn.onclick = function() { removeSchedulePerson(pIndex); };
-                    nameTd.appendChild(delBtn);
-                }
-                tr.appendChild(nameTd);
-
-                for (let d = 1; d <= daysInMonth; d++) {
-                    let td = document.createElement("td");
-                    let dateObj = new Date(currentScheduleYear, currentScheduleMonth, d);
-                    let dayOfWeek = dateObj.getDay();
-                    if (dayOfWeek === 0 || dayOfWeek === 6) td.className = 'col-weekend';
-                    if (isCurrentMonthYear && d === todayDateNum) td.className += ' col-today-blink';
-
-                    let cellKey = `${pIndex}_${d}`;
-                    let currentVal = savedData[cellKey] || "1";
-
-                    let select = document.createElement("select");
-                    select.className = `schedule-select val-${currentVal}`;
-                    select.innerHTML = `
-                        <option value="1" ${currentVal==='1'?'selected':''}>1</option>
-                        <option value="2" ${currentVal==='2'?'selected':''}>2</option>
-                        <option value="3" ${currentVal==='3'?'selected':''}>3</option>
-                        <option value="4" ${currentVal==='4'?'selected':''}>4</option>
-                        <option value="5" ${currentVal==='5'?'selected':''}>5</option>
-                        <option value="Д" ${currentVal==='Д'?'selected':''}>Д</option>
-                        <option value="О" ${currentVal==='О'?'selected':''}>О</option>
-                    `;
-                    select.onchange = function() {
-                        this.className = `schedule-select val-${this.value}`;
-                    };
-
-                    if (loggedInUser && loggedInUser.role === 'operator') {
-                        select.disabled = true;
-                        select.style.cursor = 'default';
-                    }
-
-                    td.appendChild(select);
-                    tr.appendChild(td);
-                }
-                tbody.appendChild(tr);
-            });
+        // --- ЛОГИКА ЗА МЕСЕЧЕН ГРАФИК (КАЛЕНДАР) ---
+        function changeMonth(direction) {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() + direction);
+            renderCalendar();
         }
 
-        function changeScheduleMonth(direction) {
-            currentScheduleMonth += direction;
-            if (currentScheduleMonth > 11) { currentScheduleMonth = 0; currentScheduleYear++; }
-            if (currentScheduleMonth < 0) { currentScheduleMonth = 11; currentScheduleYear--; }
-            renderMonthlySchedule();
-        }
+        function renderCalendar() {
+            let container = document.getElementById("calendar-container");
+            let titleEl = document.getElementById("calendar-month-title");
+            if (!container || !titleEl) return;
 
-        function addSchedulePerson() {
-            let input = document.getElementById("schedule-extra-person");
-            let name = input.value.trim();
-            if (!name) {
-                alert("Въведете име на служител!");
-                return;
-            }
+            let year = currentCalendarDate.getFullYear();
+            let month = currentCalendarDate.getMonth();
 
-            let staff = JSON.parse(localStorage.getItem("sys616_schedule_staff")) || ["Иван Сукоров", "Риза Мустафа"];
-            staff.push(name);
-            localStorage.setItem("sys616_schedule_staff", JSON.stringify(staff));
-            input.value = "";
-            renderMonthlySchedule();
-        }
+            const monthNames = ["Януари", "Февруари", "Март", "Април", "Май", "Юни", "Юли", "Август", "Септември", "Октомври", "Ноември", "Декември"];
+            titleEl.innerText = monthNames[month] + " " + year;
 
-        function removeSchedulePerson(pIndex) {
-            if (!confirm("Сигурни ли сте, че искате да премахнете този служител от графика?")) return;
-            let staff = JSON.parse(localStorage.getItem("sys616_schedule_staff")) || ["Иван Сукоров", "Риза Мустафа"];
-            staff.splice(pIndex, 1);
-            localStorage.setItem("sys616_schedule_staff", JSON.stringify(staff));
-            renderMonthlySchedule();
-        }
+            let firstDayIndex = new Date(year, month, 1).getDay();
+            firstDayIndex = (firstDayIndex === 0) ? 6 : firstDayIndex - 1; // Понеделник става първи ден
 
-        function saveMonthlySchedule() {
-            let savedData = {};
-            let rows = document.querySelectorAll("#schedule-tbody tr");
-            rows.forEach((row, pIndex) => {
-                let selects = row.querySelectorAll(".schedule-select");
-                selects.forEach((sel, idx) => {
-                    let day = idx + 1;
-                    savedData[`${pIndex}_${day}`] = sel.value;
-                });
+            let totalDays = new Date(year, month + 1, 0).getDate();
+
+            let html = '<div class="calendar-grid">';
+            const daysOfWeek = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Нд"];
+            daysOfWeek.forEach(d => {
+                html += `<div class="cal-header-cell">${d}</div>`;
             });
 
-            localStorage.setItem(`sys616_schedule_${currentScheduleYear}_${currentScheduleMonth}`, JSON.stringify(savedData));
-            alert("Месечният график е записан успешно!");
+            for (let i = 0; i < firstDayIndex; i++) {
+                html += `<div class="cal-cell empty"></div>`;
+            }
+
+            let isAdmin = loggedInUser && loggedInUser.role === 'admin';
+
+            for (let day = 1; day <= totalDays; day++) {
+                let dayStr = String(day).padStart(2, '0');
+                let monthStr = String(month + 1).padStart(2, '0');
+                let dateKey = `${dayStr}-${monthStr}-${year}`;
+                let noteValue = cloudCalendar[dateKey] || "";
+
+                if (isAdmin) {
+                    html class="cal-cell">
+                        <div class="cal-date-num">${day}</div>
+                        <textarea class="cal-note-input" rows="2" placeholder="Забележка..." onchange="saveCalendarNote('${dateKey}', this.value)">${noteValue}</textarea>
+                    </div>`;
+                } else {
+                    html += `<div class="cal-cell">
+                        <div class="cal-date-num">${day}</div>
+                        <div style="font-size: 10px; color: #00d2ff; white-space: pre-line; margin-top: 4px;">${noteValue}</div>
+                    </div>`;
+                }
+            }
+
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        async function saveCalendarNote(dateKey, text) {
+            await db.collection("calendar").doc(dateKey).set({
+                note: text
+            }, { merge: true });
         }
     </script>
 </body>
