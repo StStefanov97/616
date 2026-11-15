@@ -171,7 +171,7 @@
             min-height: 20px;
         }
 
-        /* ЕКРАН 2: DASHBOARD (Гъвкав мобилен изглед) */
+        /* ЕКРАН 2: DASHBOARD */
         #dashboard-screen {
             display: none;
             flex-direction: column;
@@ -861,7 +861,6 @@
                 cloudUsers = [];
                 snapshot.forEach(doc => cloudUsers.push({ id: doc.id, ...doc.data() }));
                 renderUsersTable();
-                renderMonthlySchedule();
             });
 
             db.collection("requests").orderBy("timestamp", "desc").onSnapshot(snapshot => {
@@ -1289,7 +1288,7 @@
             }
         }
 
-        // --- ЛОГИКА ЗА МЕСЕЧЕН ГРАФИК ---
+        // --- ЛОГИКА ЗА МЕСЕЧЕН ГРАФИК (РЪЧНО ВЪВЕЖДАНЕ НА ИМЕНА) ---
         function getOrthodoxEaster(year) {
             let a = year % 4, b = year % 7, c = year % 19;
             let d = (19 * c + 15) % 30;
@@ -1315,29 +1314,28 @@
         }
 
         function getSchedulePeople() {
-            let users = cloudUsers.map(u => u.name || u.username);
-            let extraPeople = JSON.parse(localStorage.getItem("sys616_schedule_extra_people")) || [];
-            let combined = [...users];
-            extraPeople.forEach(p => { if (!combined.includes(p)) combined.push(p); });
-            return combined;
+            // Взимаме имената само от ръчно добавените в графика ( localStorage / облак )
+            let extraPeople = JSON.parse(localStorage.getItem("sys616_schedule_extra_people")) || ["Иван Сукоров", "Риза Мустафа"];
+            return extraPeople;
         }
 
-        function addSchedulePerson() {
+        async function addSchedulePerson() {
             let input = document.getElementById("schedule-extra-person");
             let name = input.value.trim();
             if (!name) { alert("Въведете име на служител!"); return; }
-            let extraPeople = JSON.parse(localStorage.getItem("sys616_schedule_extra_people")) || [];
-            let allPeople = getSchedulePeople();
-            if (allPeople.includes(name)) { alert("Това име вече присъства в графика!"); return; }
+            
+            let extraPeople = JSON.parse(localStorage.getItem("sys616_schedule_extra_people")) || ["Иван Сукоров", "Риза Мустафа"];
+            if (extraPeople.includes(name)) { alert("Това име вече присъства в графика!"); return; }
+            
             extraPeople.push(name);
             localStorage.setItem("sys616_schedule_extra_people", JSON.stringify(extraPeople));
             input.value = "";
             renderMonthlySchedule();
         }
 
-        function removeExtraSchedulePerson(name) {
+        async function removeExtraSchedulePerson(name) {
             if (confirm(`Премахване на "${name}" от месечния график?`)) {
-                let extraPeople = JSON.parse(localStorage.getItem("sys616_schedule_extra_people")) || [];
+                let extraPeople = JSON.parse(localStorage.getItem("sys616_schedule_extra_people")) || ["Иван Сукоров", "Риза Мустафа"];
                 extraPeople = extraPeople.filter(p => p !== name);
                 localStorage.setItem("sys616_schedule_extra_people", JSON.stringify(extraPeople));
                 renderMonthlySchedule();
@@ -1352,7 +1350,7 @@
         }
 
         function getScheduleStorageKey() {
-            return `${scheduleYear}_${scheduleMonth}`;
+            return `schedule_${scheduleYear}_${scheduleMonth}`;
         }
 
         function updateScheduleCellStyle(selectEl) {
@@ -1401,7 +1399,6 @@
             let isCurrentMonthAndYear = (today.getFullYear() === scheduleYear && today.getMonth() === scheduleMonth);
             let todayDate = today.getDate();
 
-            let extraPeople = JSON.parse(localStorage.getItem("sys616_schedule_extra_people")) || [];
             let headerHtml = `<tr><th class="col-names">Имена</th>`;
             let dayMeta = [];
 
@@ -1437,8 +1434,7 @@
 
             let bodyHtml = "";
             people.forEach(person => {
-                let isExtra = extraPeople.includes(person);
-                let removeBtn = (isAdmin && isExtra)
+                let removeBtn = isAdmin
                     ? `<button onclick="removeExtraSchedulePerson('${person.replace(/'/g, "\\'")}')" title="Премахни името" style="float:right; background:rgba(255,77,77,0.2); border:1px solid #ff4d4d; color:#ff4d4d; border-radius:4px; padding:0 5px; cursor:pointer; font-weight:bold; font-size:11px;">✕</button>`
                     : "";
 
